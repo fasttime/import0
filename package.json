@@ -1,0 +1,30 @@
+{
+  "name": "import0",
+  "version": "0.0.0",
+  "description": "Virtualized runtime environment for Node.js",
+  "license": "ISC",
+  "author": "Francesco Trotta <ft@fasttime.org> (https://github.com/fasttime)",
+  "files": [],
+  "main": "import0.js",
+  "scripts": {
+    "build": "npm install && npm run clean && npm run lint && npm run coverage",
+    "clean": "node ./dev/clean.js",
+    "coverage": "c8 --reporter=html --reporter=text-summary npm test",
+    "lint": "node ./dev/lint.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/mocha --check-leaks test/**/*.spec.js"
+  },
+  "dependencies": {
+    "cjs-module-lexer": "1"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "latest",
+    "@babel/plugin-syntax-top-level-await": "latest",
+    "@fasttime/lint": "latest",
+    "c8": "latest",
+    "mocha": "latest"
+  },
+  "engines": {
+    "node": ">=15"
+  },
+  "type": "module"
+}
