@@ -1,4 +1,4 @@
-/* eslint-env mocha */
+/* eslint-env ebdd/ebdd */
 
 import assert               from 'assert';
 import { createRequire }    from 'module';

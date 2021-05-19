@@ -1,4 +1,4 @@
-/* eslint-env mocha */
+/* eslint-env ebdd/ebdd */
 
 import assert               from 'assert';
 import Module               from 'module';
@@ -47,7 +47,7 @@ describe
             'default exports',
             async () =>
             {
-                const actual = await import('./fixtures/cjs-no-exports-module.cjs');
+                const actual = await import0('./fixtures/cjs-no-exports-module.cjs');
                 const expected = { __proto__: null, default: { } };
                 Object.defineProperty(expected, Symbol.toStringTag, { value: 'Module' });
                 assert.deepStrictEqual(actual, expected);

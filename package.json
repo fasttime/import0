@@ -11,7 +11,7 @@
     "clean": "node ./dev/clean.js",
     "coverage": "c8 --reporter=html --reporter=text-summary npm test",
     "lint": "node ./dev/lint.js",
-    "test": "node --experimental-vm-modules node_modules/.bin/mocha --check-leaks test/**/*.spec.js"
+    "test": "node --experimental-vm-modules node_modules/mocha/bin/mocha --check-leaks --ui=ebdd test/**/*.spec.js"
   },
   "dependencies": {
     "cjs-module-lexer": "1"
@@ -21,6 +21,8 @@
     "@babel/plugin-syntax-top-level-await": "latest",
     "@fasttime/lint": "latest",
     "c8": "latest",
+    "ebdd": "latest",
+    "eslint-plugin-ebdd": "latest",
     "mocha": "latest"
   },
   "engines": {

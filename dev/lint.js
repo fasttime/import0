@@ -19,5 +19,6 @@ await lint
             requireConfigFile: false,
             sourceType: 'module',
         },
+        plugins: ['ebdd'],
     },
 );

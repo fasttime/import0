@@ -37,7 +37,7 @@ function captureStackTrace(constructorOpt, stackTraceLimit)
 
 async function checkModulePath(modulePath, specifier, referencingModuleURL)
 {
-    if (!modulePath.endsWith('/'))
+    if (!/[/\\]$/.test(modulePath))
     {
         try
         {
@@ -160,7 +160,7 @@ function createImportModuleDynamically()
         case '.js':
             for (let packageJSONPath = resolve(modulePath, '../package.json'); ;)
             {
-                if (packageJSONPath.endsWith('node_modules/package.json'))
+                if (/[/\\]node_modules[/\\]package\.json$/.test(packageJSONPath))
                     break;
                 const isESModuleFlag =
                 await getPackageESModuleFlag(packageJSONPath, specifier, referencingModuleURL);

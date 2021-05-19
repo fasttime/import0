@@ -1,4 +1,4 @@
-/* eslint-env mocha */
+/* eslint-env ebdd/ebdd */
 
 import assert from 'assert';
 
@@ -208,14 +208,25 @@ describe
             ),
         );
 
-        it
+        it.when(process.platform !== 'win32')
         (
-            'inaccessible file',
+            'inaccessible file (Unix)',
             () =>
             assert.rejects
             (
                 () => import0('/dev/null/any.js'),
                 { code: 'ENOTDIR', constructor: Error },
+            ),
+        );
+
+        it.when(process.platform === 'win32')
+        (
+            'inaccessible file (Windows)',
+            () =>
+            assert.rejects
+            (
+                () => import0('file:///C:/System%20Volume%20Information'),
+                { code: 'EPERM', constructor: Error },
             ),
         );
     },

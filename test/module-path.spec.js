@@ -1,4 +1,4 @@
-/* eslint-env mocha */
+/* eslint-env ebdd/ebdd */
 
 import assert               from 'assert';
 import { fileURLToPath }    from 'url';
@@ -42,10 +42,10 @@ describe
         it
         (
             'relative path',
-            () => assert.doesNotReject(() => import('./fixtures/any.js')),
+            () => assert.doesNotReject(() => import0('./fixtures/any.js')),
         );
 
-        it
+        it.when(process.platform !== 'win32')
         (
             'absolute path',
             async () =>
