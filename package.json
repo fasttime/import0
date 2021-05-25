@@ -7,10 +7,11 @@
   "files": [],
   "main": "import0.js",
   "scripts": {
-    "build": "npm install && npm run clean && npm run lint && npm run coverage",
+    "build": "npm install && npm run clean && npm run lint && npm run make-fixtures && npm run coverage",
     "clean": "node ./dev/clean.js",
     "coverage": "c8 --reporter=html --reporter=text-summary npm test",
     "lint": "node ./dev/lint.js",
+    "make-fixtures": "node ./test/make-fixtures.js",
     "test": "node --experimental-vm-modules node_modules/mocha/bin/mocha --check-leaks --ui=ebdd test/**/*.spec.js"
   },
   "dependencies": {

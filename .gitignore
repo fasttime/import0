@@ -4,3 +4,4 @@
 /*.cpuprofile
 /coverage/
 /node_modules/
+/test/fixtures/
