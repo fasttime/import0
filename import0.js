@@ -1,7 +1,7 @@
 import { init, parse }                              from 'cjs-module-lexer';
 import { promises as fsPromises }                   from 'fs';
 import Module, { builtinModules, createRequire }    from 'module';
-import { extname, resolve }                         from 'path';
+import { dirname, extname, join, resolve }          from 'path';
 import { fileURLToPath, pathToFileURL }             from 'url';
 import
 {
@@ -19,6 +19,11 @@ const CREATE_FUNCTION_PARAMS =
     '__filename',
     '__dirname',
 ];
+
+const MAIN_FILE_BASE_NAMES = ['index.js', 'index.json', 'index.node'];
+
+const MAIN_FILE_POSTFIXES =
+['', '.js', '.json', '.node', '/index.js', '/index.json', '/index.node'];
 
 const _Error_captureStackTrace  = Error.captureStackTrace;
 const _JSON_parse               = JSON.parse;
@@ -39,23 +44,15 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
 {
     if (!/[/\\]$/.test(modulePath))
     {
-        try
+        const stats = await tryStat(modulePath);
+        if (!stats)
         {
-            const stats = await stat(modulePath);
-            if (!stats.isDirectory())
-                return;
+            const referencedSpecifier = formatReferencedSpecifier(specifier, referencingModuleURL);
+            const message = `Module ${referencedSpecifier} not found`;
+            throwNodeError('ERR_MODULE_NOT_FOUND', message);
         }
-        catch (error)
-        {
-            if (error.code === 'ENOENT')
-            {
-                const referencedSpecifier =
-                formatReferencedSpecifier(specifier, referencingModuleURL);
-                const message = `Module ${referencedSpecifier} not found`;
-                throwNodeError('ERR_MODULE_NOT_FOUND', message);
-            }
-            throw error;
-        }
+        if (!stats.isDirectory())
+            return;
     }
     {
         const referencedSpecifier = formatReferencedSpecifier(specifier, referencingModuleURL);
@@ -64,40 +61,50 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
     }
 }
 
-const formatReferencedSpecifier =
-(specifier, referencingModuleURL) => `"${specifier}" imported by ${referencingModuleURL}`;
-
 function createImportModuleDynamically()
 {
-    async function getPackageESModuleFlag(packageJSONPath, specifier, referencingModuleURL)
+    async function getPackageConfig(packageJSONPath, specifier, referencingModuleURL)
     {
-        let isESModuleFlag = isESModuleFlagCache[packageJSONPath];
-        if (isESModuleFlag !== undefined)
-            return isESModuleFlag;
-        try
+        let packageConfig;
+        if (packageJSONPath in packageConfigCache)
+            packageConfig = packageConfigCache[packageJSONPath];
+        else
         {
-            const text = await readTextFile(packageJSONPath);
-            const { type } = _JSON_parse(text);
-            isESModuleFlag = type === 'module';
-        }
-        catch (error)
-        {
-            if (error instanceof SyntaxError)
+            let text;
+            try
             {
-                const referencedSpecifier =
-                formatReferencedSpecifier(specifier, referencingModuleURL);
-                const message =
-                `Invalid package config "${packageJSONPath}" while resolving ` +
-                `${referencedSpecifier}`;
-                throwNodeError('ERR_INVALID_PACKAGE_CONFIG', message);
+                text = await readTextFile(packageJSONPath);
             }
-            const { code } = error;
-            if (code !== 'ENOENT' && code !== 'EISDIR')
-                throw error;
-            isESModuleFlag = null;
+            catch (error)
+            {
+                const { code } = error;
+                if (code !== 'ENOENT' && code !== 'EISDIR')
+                    throw error;
+            }
+            if (text != null)
+            {
+                let json;
+                try
+                {
+                    json = _JSON_parse(text);
+                }
+                catch
+                {
+                    const referencedSpecifier =
+                    formatReferencedSpecifier(specifier, referencingModuleURL);
+                    const message =
+                    `Invalid package config "${packageJSONPath}" while resolving ` +
+                    `${referencedSpecifier}`;
+                    throwNodeError('ERR_INVALID_PACKAGE_CONFIG', message);
+                }
+                const { main, type } = json ?? { };
+                const isESModuleFlag = type === 'module';
+                const packageMain = typeof main === 'string' ? main : undefined;
+                packageConfig = { isESModuleFlag, packageMain };
+            }
+            packageConfigCache[packageJSONPath] = packageConfig;
         }
-        isESModuleFlagCache[packageJSONPath] = isESModuleFlag;
-        return isESModuleFlag;
+        return packageConfig;
     }
 
     async function importModuleDynamically(specifier, { context, identifier: referencingModuleURL })
@@ -119,8 +126,14 @@ function createImportModuleDynamically()
         }
         else
         {
-            const moduleURL =
-            new URL(specifier, /^[./]/.test(specifier) ? referencingModuleURL : undefined);
+            let moduleURL;
+            if (/^(?:[./]|file:)/.test(specifier))
+            {
+                moduleURL =
+                new URL(specifier, /^[./]/.test(specifier) ? referencingModuleURL : undefined);
+            }
+            else
+                moduleURL = await resolvePackage(specifier, referencingModuleURL);
             const modulePath = fileURLToPath(moduleURL);
             identifier = moduleURL.toString();
             module = moduleCache[identifier];
@@ -162,10 +175,10 @@ function createImportModuleDynamically()
             {
                 if (/[/\\]node_modules[/\\]package\.json$/.test(packageJSONPath))
                     break;
-                const isESModuleFlag =
-                await getPackageESModuleFlag(packageJSONPath, specifier, referencingModuleURL);
-                if (typeof isESModuleFlag === 'boolean')
-                    return isESModuleFlag;
+                const packageConfig =
+                await getPackageConfig(packageJSONPath, specifier, referencingModuleURL);
+                if (packageConfig)
+                    return packageConfig.isESModuleFlag;
                 const nextPackageJSONPath = resolve(packageJSONPath, '../../package.json');
                 if (nextPackageJSONPath === packageJSONPath)
                     break;
@@ -185,7 +198,33 @@ function createImportModuleDynamically()
         }
     }
 
-    const isESModuleFlagCache = { __proto__: null };
+    async function resolvePackage(specifier, referencingModuleURL)
+    {
+        const [, packageName, packageSubpath] =
+        specifier.match(/^([^@][^/]*|@[^/]+\/[^/]+)(?:\/(.*))?$/s);
+        let modulePath;
+        const packagePath = await findPackagePath(packageName, specifier, referencingModuleURL);
+        if (!packageSubpath || packageSubpath === '.')
+        {
+            const packageJSONPath = join(packagePath, 'package.json');
+            const packageConfig =
+            await getPackageConfig(packageJSONPath, specifier, referencingModuleURL);
+            modulePath = await findMainPath(packagePath, packageConfig?.packageMain);
+            if (modulePath == null)
+            {
+                const referencedSpecifier =
+                formatReferencedSpecifier(specifier, referencingModuleURL);
+                const message = `Module ${referencedSpecifier} not found`;
+                throwNodeError('ERR_MODULE_NOT_FOUND', message);
+            }
+        }
+        else
+            modulePath = join(packagePath, packageSubpath);
+        const moduleURL = pathToFileURL(modulePath);
+        return moduleURL;
+    }
+
+    const packageConfigCache = { __proto__: null };
     const moduleCache = { __proto__: null };
     return importModuleDynamically;
 }
@@ -255,6 +294,55 @@ function createSyntheticCJSModule(modulePath, compiledWrapper, exportNames, opti
     return module;
 }
 
+async function fileExists(path)
+{
+    const stats = await tryStat(path);
+    const result = stats != null && stats.isFile();
+    return result;
+}
+
+async function findMainPath(packagePath, packageMain)
+{
+    if (packageMain !== undefined)
+    {
+        for (const postfix of MAIN_FILE_POSTFIXES)
+        {
+            const baseName = `${packageMain}${postfix}`;
+            const guess = join(packagePath, baseName);
+            if (await fileExists(guess))
+                return guess;
+        }
+    }
+    for (const baseName of MAIN_FILE_BASE_NAMES)
+    {
+        const guess = join(packagePath, baseName);
+        if (await fileExists(guess))
+            return guess;
+    }
+}
+
+async function findPackagePath(packageName, specifier, referencingModuleURL)
+{
+    for (let path = fileURLToPath(new URL('.', referencingModuleURL)); ;)
+    {
+        const packagePath = join(path, 'node_modules', packageName);
+        const stats = await tryStat(packagePath);
+        if (stats?.isDirectory())
+            return packagePath;
+        const newPath = dirname(path);
+        if (newPath === path)
+        {
+            const referencedSpecifier = formatReferencedSpecifier(specifier, referencingModuleURL);
+            const message = `Module ${referencedSpecifier} not found`;
+            throwNodeError('ERR_MODULE_NOT_FOUND', message);
+        }
+        path = newPath;
+    }
+}
+
+const formatReferencedSpecifier =
+(specifier, referencingModuleURL) => `"${specifier}" imported by ${referencingModuleURL}`;
+
 function getCallerFileName()
 {
     const stackTrace = captureStackTrace(import0, 1);
@@ -298,6 +386,20 @@ function throwNodeError(code, message, constructor = Error)
     error.code = code;
     error.stack = stackTrace.replace(/^Error\n/, `${constructor.name} [${code}]: ${message}\n`);
     throw error;
+}
+
+async function tryStat(path)
+{
+    try
+    {
+        const stats = await stat(path);
+        return stats;
+    }
+    catch (error)
+    {
+        if (error.code !== 'ENOENT')
+            throw error;
+    }
 }
 
 function wrapModuleConstructor(constructor, ...args)

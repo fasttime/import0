@@ -16,7 +16,6 @@ describe
             async () =>
             {
                 const { default: import0 } = await import(IMPORT_0_PATH);
-
                 await assert.doesNotReject(() => import0('./fixtures/any.js'));
             },
         );
@@ -27,7 +26,7 @@ describe
             async () =>
             {
                 const require = createRequire(import.meta.url);
-                const importer = require('./fixtures/cjs-importer.cjs');
+                const importer = require('./fixtures/cjs-any-importer.cjs');
                 await assert.doesNotReject(importer);
             },
         );
@@ -38,7 +37,6 @@ describe
             async () =>
             {
                 const { default: import0 } = await import(IMPORT_0_PATH);
-
                 await assert.doesNotReject(() => import0('./fixtures/any.js'));
             },
         );
@@ -50,7 +48,6 @@ describe
             {
                 // eslint-disable-next-line require-await
                 const AsyncFunction = (async () => undefined).constructor;
-
                 const importer =
                 AsyncFunction
                 (
@@ -68,7 +65,6 @@ describe
             async () =>
             {
                 const { default: import0 } = await import(IMPORT_0_PATH);
-
                 await assert.rejects
                 (
                     () => ['./fixtures/any.js', undefined].reduce(import0),

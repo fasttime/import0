@@ -210,7 +210,7 @@ describe
 
         it.when(process.platform !== 'win32')
         (
-            'inaccessible file (Unix)',
+            'inaccessible file (POSIX)',
             () =>
             assert.rejects
             (

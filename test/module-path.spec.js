@@ -55,5 +55,29 @@ describe
                 await assert.doesNotReject(() => import0(path));
             },
         );
+
+        it
+        (
+            'package without subpath',
+            () =>
+            assert.doesNotReject
+            (() => import0('./fixtures/any-package-importer-without-subpath.mjs')),
+        );
+
+        it
+        (
+            'package with subpath',
+            () =>
+            assert.doesNotReject
+            (() => import0('./fixtures/any-package-importer-with-subpath.mjs')),
+        );
+
+        it
+        (
+            'package with main',
+            () =>
+            assert.doesNotReject
+            (() => import0('./fixtures/package-with-main-importer.mjs')),
+        );
     },
 );
