@@ -9,7 +9,7 @@ process.chdir(workspaceFolder);
 await lint
 (
     {
-        src: ['*.js', 'dev/*.js', 'test/*.js'],
+        src: ['*.js', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
         envs: 'node',
         parser: '@babel/eslint-parser',
         parserOptions:

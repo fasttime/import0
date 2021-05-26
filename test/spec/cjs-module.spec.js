@@ -1,6 +1,6 @@
 /* eslint-env ebdd/ebdd */
 
-import assert               from 'assert';
+import assert               from 'assert/strict';
 import Module               from 'module';
 import { fileURLToPath }    from 'url';
 
@@ -15,7 +15,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('../import0.js'));
+                ({ default: import0 } = await import('../../import0.js'));
             },
         );
 
@@ -24,7 +24,7 @@ describe
             'exports',
             async () =>
             {
-                const actual = await import0('./fixtures/cjs-exports-module.cjs');
+                const actual = await import0('../fixtures/cjs-exports-module.cjs');
                 const expected =
                 {
                     __proto__: null,
@@ -47,7 +47,7 @@ describe
             'default exports',
             async () =>
             {
-                const actual = await import0('./fixtures/cjs-no-exports-module.cjs');
+                const actual = await import0('../fixtures/cjs-no-exports-module.cjs');
                 const expected = { __proto__: null, default: { } };
                 Object.defineProperty(expected, Symbol.toStringTag, { value: 'Module' });
                 assert.deepStrictEqual(actual, expected);
@@ -71,7 +71,7 @@ describe
                     __filename,
                     __dirname,
                 } =
-                await import0('./fixtures/cjs-vars-module.cjs');
+                await import0('../fixtures/cjs-vars-module.cjs');
                 assert.strictEqual(thisValue, exports);
                 assert.strictEqual(exports, defaultExport);
                 assert.strictEqual(typeof require, 'function');
@@ -79,9 +79,9 @@ describe
                 assert.strictEqual(require.name, 'require');
                 assert.strictEqual(module.constructor, Module);
                 const expectedFilename =
-                fileURLToPath(new URL('./fixtures/cjs-vars-module.cjs', import.meta.url));
+                fileURLToPath(new URL('../fixtures/cjs-vars-module.cjs', import.meta.url));
                 assert.strictEqual(__filename, expectedFilename);
-                const expectedDirname = fileURLToPath(new URL('./fixtures', import.meta.url));
+                const expectedDirname = fileURLToPath(new URL('../fixtures', import.meta.url));
                 assert.strictEqual(__dirname, expectedDirname);
             },
         );

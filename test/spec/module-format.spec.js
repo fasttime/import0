@@ -1,6 +1,18 @@
 /* eslint-env ebdd/ebdd */
 
-import assert from 'assert';
+import assert from 'assert/strict';
+
+function makeExpectedError(code, specifier, constructor = Error)
+{
+    const expectedError =
+    {
+        code,
+        constructor,
+        specifier,
+        referencingModuleURL: import.meta.url,
+    };
+    return expectedError;
+}
 
 describe
 (
@@ -13,7 +25,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('../import0.js'));
+                ({ default: import0 } = await import('../../import0.js'));
             },
         );
 
@@ -22,7 +34,7 @@ describe
             'file with extension ".cjs"',
             async () =>
             {
-                const { default: actual } = await import0('./fixtures/cjs-module.cjs');
+                const { default: actual } = await import0('../fixtures/cjs-module.cjs');
                 assert.strictEqual(actual, 'CommonJS module');
             },
         );
@@ -32,7 +44,7 @@ describe
             'file with extension ".mjs"',
             async () =>
             {
-                const { default: actual } = await import0('./fixtures/es-module.mjs');
+                const { default: actual } = await import0('../fixtures/es-module.mjs');
                 assert.strictEqual(actual, 'ES module');
             },
         );
@@ -42,7 +54,7 @@ describe
             'file with extension ".js" when the next "package.json" file has type commonjs',
             async () =>
             {
-                const { default: actual } = await import0('./fixtures/cjs/module.js');
+                const { default: actual } = await import0('../fixtures/cjs/module.js');
                 assert.strictEqual(actual, 'CommonJS module');
             },
         );
@@ -52,7 +64,7 @@ describe
             'file with extension ".js" when the next "package.json" file is inside "node_modules"',
             async () =>
             {
-                const { default: actual } = await import0('./fixtures/node_modules/module.js');
+                const { default: actual } = await import0('../fixtures/node_modules/module.js');
                 assert.strictEqual(actual, 'CommonJS module');
             },
         );
@@ -62,7 +74,7 @@ describe
             'file with extension ".js" when the next "package.json" file has type module',
             async () =>
             {
-                const { default: actual } = await import0('./fixtures/esm/module.js');
+                const { default: actual } = await import0('../fixtures/esm/module.js');
                 assert.strictEqual(actual, 'ES module');
             },
         );
@@ -73,7 +85,7 @@ describe
             async () =>
             {
                 const { default: actual } =
-                await import0('./fixtures/esm/dir-package-json/module.js');
+                await import0('../fixtures/esm/dir-package-json/module.js');
                 assert.strictEqual(actual, 'ES module');
             },
         );
@@ -83,7 +95,7 @@ describe
             'unprefixed builtin specifier',
             async () =>
             {
-                const { default: actual } = await import0('assert');
+                const { default: actual } = await import0('assert/strict');
                 assert.strictEqual(actual, assert);
             },
         );
@@ -93,7 +105,7 @@ describe
             'builtin specifier prefixed with "node:"',
             async () =>
             {
-                const { default: actual } = await import0('node:assert');
+                const { default: actual } = await import0('node:assert/strict');
                 assert.strictEqual(actual, assert);
             },
         );
@@ -105,7 +117,7 @@ describe
             assert.rejects
             (
                 () => import0('node:missing'),
-                { code: 'ERR_UNKNOWN_BUILTIN_MODULE', constructor: Error },
+                makeExpectedError('ERR_UNKNOWN_BUILTIN_MODULE', 'node:missing'),
             ),
         );
 
@@ -115,8 +127,8 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/dir-any.js'),
-                { code: 'ERR_UNSUPPORTED_DIR_IMPORT', constructor: Error },
+                () => import0('../fixtures/dir-any.js'),
+                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-any.js'),
             ),
         );
 
@@ -127,7 +139,7 @@ describe
             assert.rejects
             (
                 () => import0('.'),
-                { code: 'ERR_UNSUPPORTED_DIR_IMPORT', constructor: Error },
+                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '.'),
             ),
         );
 
@@ -137,8 +149,9 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/cjs-capext-module.CJS'),
-                { code: 'ERR_UNKNOWN_FILE_EXTENSION', constructor: TypeError },
+                () => import0('../fixtures/cjs-capext-module.CJS'),
+                makeExpectedError
+                ('ERR_UNKNOWN_FILE_EXTENSION', '../fixtures/cjs-capext-module.CJS', TypeError),
             ),
         );
 
@@ -148,8 +161,22 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/invalid/any.js'),
-                { code: 'ERR_INVALID_PACKAGE_CONFIG', constructor: Error },
+                () => import0('../fixtures/invalid-package-json-dir/any.js'),
+                makeExpectedError
+                ('ERR_INVALID_PACKAGE_CONFIG', '../fixtures/invalid-package-json-dir/any.js'),
+            ),
+        );
+
+        // Node 16 fails with a TypeError instead.
+        it
+        (
+            'file with extension ".js" when the next "package.json" file is null',
+            () =>
+            assert.rejects
+            (
+                () => import0('../fixtures/null-package-json-dir/any.js'),
+                makeExpectedError
+                ('ERR_INVALID_PACKAGE_CONFIG', '../fixtures/null-package-json-dir/any.js'),
             ),
         );
 
@@ -159,8 +186,8 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/missing.js'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                () => import0('../fixtures/missing.js'),
+                makeExpectedError('ERR_MODULE_NOT_FOUND', '../fixtures/missing.js'),
             ),
         );
 
@@ -170,8 +197,8 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/missing.png'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                () => import0('../fixtures/missing.png'),
+                makeExpectedError('ERR_MODULE_NOT_FOUND', '../fixtures/missing.png'),
             ),
         );
 
@@ -181,8 +208,9 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/invalid/missing.js'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                () => import0('../fixtures/invalid-package-json-dir/missing.js'),
+                makeExpectedError
+                ('ERR_MODULE_NOT_FOUND', '../fixtures/invalid-package-json-dir/missing.js'),
             ),
         );
 
@@ -192,8 +220,8 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/dir-missing/'),
-                { code: 'ERR_UNSUPPORTED_DIR_IMPORT', constructor: Error },
+                () => import0('../fixtures/dir-missing/'),
+                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-missing/'),
             ),
         );
 
@@ -203,8 +231,8 @@ describe
             () =>
             assert.rejects
             (
-                () => import0('./fixtures/dir-missing\\'),
-                { code: 'ERR_UNSUPPORTED_DIR_IMPORT', constructor: Error },
+                () => import0('../fixtures/dir-missing\\'),
+                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-missing\\'),
             ),
         );
 

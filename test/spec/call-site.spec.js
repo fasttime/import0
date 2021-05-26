@@ -1,9 +1,9 @@
 /* eslint-env ebdd/ebdd */
 
-import assert               from 'assert';
+import assert               from 'assert/strict';
 import { createRequire }    from 'module';
 
-const IMPORT_0_PATH = '../import0.js';
+const IMPORT_0_PATH = '../../import0.js';
 
 describe
 (
@@ -16,7 +16,7 @@ describe
             async () =>
             {
                 const { default: import0 } = await import(IMPORT_0_PATH);
-                await assert.doesNotReject(() => import0('./fixtures/any.js'));
+                await assert.doesNotReject(() => import0('../fixtures/any.js'));
             },
         );
 
@@ -26,7 +26,7 @@ describe
             async () =>
             {
                 const require = createRequire(import.meta.url);
-                const importer = require('./fixtures/cjs-any-importer.cjs');
+                const importer = require('../fixtures/cjs-any-importer.cjs');
                 await assert.doesNotReject(importer);
             },
         );
@@ -37,7 +37,7 @@ describe
             async () =>
             {
                 const { default: import0 } = await import(IMPORT_0_PATH);
-                await assert.doesNotReject(() => import0('./fixtures/any.js'));
+                await assert.doesNotReject(() => import0('../fixtures/any.js'));
             },
         );
 
@@ -53,7 +53,7 @@ describe
                 (
                     `const { default: import0 } = await import('${IMPORT_0_PATH}');\n` +
                     '\n' +
-                    'await import0(\'./fixtures/any.js\');\n',
+                    'await import0(\'../fixtures/any.js\');\n',
                 );
                 await assert.doesNotReject(importer);
             },
@@ -67,7 +67,7 @@ describe
                 const { default: import0 } = await import(IMPORT_0_PATH);
                 await assert.rejects
                 (
-                    () => ['./fixtures/any.js', undefined].reduce(import0),
+                    () => ['../fixtures/any.js', undefined].reduce(import0),
                     { code: 'ERR_UNSUPPORTED_CALL_SITE', constructor: Error },
                 );
             },

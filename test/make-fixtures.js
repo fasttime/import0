@@ -72,8 +72,9 @@ const FIXTURES =
     export default 'ES module';
 
     const meta = import.meta;
+    const thisValue = this;
 
-    export { meta };
+    export { meta, thisValue };
     `,
     'esm':
     {
@@ -96,7 +97,7 @@ const FIXTURES =
         }
         `,
     },
-    'invalid':
+    'invalid-package-json-dir':
     {
         'any.js':
         `
@@ -106,6 +107,10 @@ const FIXTURES =
         ?
         `,
     },
+    'missing-package-importer.mjs':
+    `
+    import 'missing-package';
+    `,
     'node_modules':
     {
         'any-package':
@@ -143,6 +148,15 @@ const FIXTURES =
             }
             `,
         },
+        'package-with-missing-main':
+        {
+            'package.json':
+            `
+            {
+                "main": "main-dir"
+            }
+            `,
+        },
         'package.json':
         `
         {
@@ -150,9 +164,23 @@ const FIXTURES =
         }
         `,
     },
+    'null-package-json-dir':
+    {
+        'any.js':
+        `
+        `,
+        'package.json':
+        `
+        null
+        `,
+    },
     'package-with-main-importer.mjs':
     `
     import 'package-with-main';
+    `,
+    'package-with-missing-main-importer.mjs':
+    `
+    import 'package-with-missing-main';
     `,
 };
 
