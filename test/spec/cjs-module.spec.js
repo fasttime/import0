@@ -15,7 +15,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('../../import0.js'));
+                ({ default: import0 } = await import('import0'));
             },
         );
 
@@ -61,6 +61,7 @@ describe
             'runtime variables',
             async () =>
             {
+                const specifier = '../fixtures/cjs-vars-module.cjs';
                 const
                 {
                     default: defaultExport,
@@ -71,15 +72,14 @@ describe
                     __filename,
                     __dirname,
                 } =
-                await import0('../fixtures/cjs-vars-module.cjs');
+                await import0(specifier);
                 assert.strictEqual(thisValue, exports);
                 assert.strictEqual(exports, defaultExport);
                 assert.strictEqual(typeof require, 'function');
                 assert.strictEqual(require.length, 1);
                 assert.strictEqual(require.name, 'require');
                 assert.strictEqual(module.constructor, Module);
-                const expectedFilename =
-                fileURLToPath(new URL('../fixtures/cjs-vars-module.cjs', import.meta.url));
+                const expectedFilename = fileURLToPath(new URL(specifier, import.meta.url));
                 assert.strictEqual(__filename, expectedFilename);
                 const expectedDirname = fileURLToPath(new URL('../fixtures', import.meta.url));
                 assert.strictEqual(__dirname, expectedDirname);

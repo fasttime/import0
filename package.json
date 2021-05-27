@@ -4,8 +4,17 @@
   "description": "Virtualized runtime environment for Node.js",
   "license": "ISC",
   "author": "Francesco Trotta <ft@fasttime.org> (https://github.com/fasttime)",
-  "files": [],
-  "main": "import0.js",
+  "files": [
+    "import0.d.ts",
+    "import0.js"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fasttime/import0.git"
+  },
   "scripts": {
     "build": "npm install && npm run clean && npm run lint && npm run make-fixtures && npm run coverage",
     "clean": "node ./dev/clean.js",
@@ -29,5 +38,12 @@
   "engines": {
     "node": ">=15"
   },
-  "type": "module"
+  "exports": {
+    ".": {
+      "node": "./import0.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module",
+  "types": "import0.d.ts"
 }

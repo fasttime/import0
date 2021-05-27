@@ -3,7 +3,7 @@
 import assert               from 'assert/strict';
 import { createRequire }    from 'module';
 
-const IMPORT_0_PATH = '../../import0.js';
+const IMPORT_0_PATH = 'import0';
 
 describe
 (

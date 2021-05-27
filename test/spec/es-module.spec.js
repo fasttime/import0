@@ -7,14 +7,16 @@ describe
     'ES module',
     () =>
     {
+        const SPECIFIER = '../fixtures/es-module.mjs';
+
         let namespace;
 
         before
         (
             async () =>
             {
-                const { default: import0 } = await import('../../import0.js');
-                namespace = await import0('../fixtures/es-module.mjs');
+                const { default: import0 } = await import('import0');
+                namespace = await import0(SPECIFIER);
             },
         );
 
@@ -24,8 +26,7 @@ describe
             () =>
             {
                 const { meta } = namespace;
-                const url =
-                new URL('../fixtures/es-module.mjs', import.meta.url).toString();
+                const url = new URL(SPECIFIER, import.meta.url).toString();
                 assert.deepStrictEqual(meta, { __proto__: null, url });
                 assert.deepStrictEqual
                 (

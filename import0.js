@@ -108,8 +108,9 @@ function createImportModuleDynamically()
     {
         let identifier;
         let module;
-        specifier = String(specifier);
-        if (specifier.startsWith('node:'))
+        specifier = `${specifier}`;
+        const protocol = specifier.match(/^[a-z][+\-.0-9a-z]*:/i)?.[0];
+        if (protocol === 'node:')
         {
             if (!builtinModules.includes(specifier.slice(5)))
             {
@@ -136,13 +137,34 @@ function createImportModuleDynamically()
         else
         {
             let moduleURL;
-            if (/^(?:[./]|file:)/.test(specifier))
+            if (protocol === 'file:' || /^[./]/.test(specifier))
             {
-                moduleURL =
-                new URL(specifier, /^[./]/.test(specifier) ? referencingModuleURL : undefined);
+                const match = specifier.match(/%(?:2f|5c)/i);
+                if (match)
+                {
+                    const messageFormat = `Invalid encoded character "${match}" in %s`;
+                    throwImportError
+                    (
+                        'ERR_INVALID_MODULE_SPECIFIER',
+                        messageFormat,
+                        specifier,
+                        referencingModuleURL,
+                    );
+                }
+                moduleURL = new URL(specifier, protocol ? undefined : referencingModuleURL);
             }
+            else if (!protocol)
+                moduleURL = await resolvePackageURL(specifier, referencingModuleURL);
             else
-                moduleURL = await resolvePackage(specifier, referencingModuleURL);
+            {
+                throwImportError
+                (
+                    'ERR_UNSUPPORTED_ESM_URL_SCHEME',
+                    `Unsupported URL protocol "${protocol}" in %s`,
+                    specifier,
+                    referencingModuleURL,
+                );
+            }
             const modulePath = fileURLToPath(moduleURL);
             identifier = moduleURL.toString();
             module = moduleCache[identifier];
@@ -216,10 +238,20 @@ function createImportModuleDynamically()
         }
     }
 
-    async function resolvePackage(specifier, referencingModuleURL)
+    async function resolvePackageURL(specifier, referencingModuleURL)
     {
-        const [, packageName, packageSubpath] =
-        specifier.match(/^([^@][^/]*|@[^/]+\/[^/]+)(?:\/(.*))?$/s);
+        const match = specifier.match(/^([^@][^/]*|@[^/]+\/[^/]+)(?:\/(.*))?$/s);
+        if (!match)
+        {
+            throwImportError
+            (
+                'ERR_INVALID_MODULE_SPECIFIER',
+                'Invalid specifier %',
+                specifier,
+                referencingModuleURL,
+            );
+        }
+        const [, packageName, packageSubpath] = match;
         let modulePath;
         const packagePath = await findPackagePath(packageName, specifier, referencingModuleURL);
         if (!packageSubpath || packageSubpath === '.')
@@ -342,14 +374,18 @@ async function findPackagePath(packageName, specifier, referencingModuleURL)
     handleModuleNotFound(specifier, referencingModuleURL);
 }
 
-function getCallerFileName()
+function getCallerURL()
 {
     const stackTrace = captureStackTrace(import0, 1);
     const match = stackTrace.match(/^Error\n    at (?:.*\((.*):\d+:\d+\)|(.*):\d+:\d+)$/);
-    if (!match)
-        return;
-    const fileName = match[1] ?? match[2];
-    return fileName;
+    const fileName = match?.[1] ?? match?.[2];
+    if (fileName == null)
+    {
+        throwNodeError
+        ('ERR_UNSUPPORTED_CALL_SITE', 'import0 was invoked from an unsupported call site');
+    }
+    const url = fileName.startsWith('file:') ? fileName : pathToFileURL(fileName).toString();
+    return url;
 }
 
 function handleModuleNotFound(specifier, referencingModuleURL)
@@ -360,14 +396,7 @@ function handleModuleNotFound(specifier, referencingModuleURL)
 
 export default async function import0(specifier)
 {
-    const callerFileName = getCallerFileName();
-    if (callerFileName == null)
-    {
-        throwNodeError
-        ('ERR_UNSUPPORTED_CALL_SITE', 'import0 was invoked from an unsupported call site');
-    }
-    const url =
-    callerFileName.startsWith('file:') ? callerFileName : pathToFileURL(callerFileName);
+    const url = getCallerURL();
     const importModuleDynamically = createImportModuleDynamically();
     const context = createContext();
     const { namespace } = await importModuleDynamically(specifier, { context, identifier: url });

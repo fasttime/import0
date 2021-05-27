@@ -25,7 +25,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('../../import0.js'));
+                ({ default: import0 } = await import('import0'));
             },
         );
 
@@ -113,126 +113,186 @@ describe
         it
         (
             'unknown specifier prefixed with "node:"',
-            () =>
-            assert.rejects
-            (
-                () => import0('node:missing'),
-                makeExpectedError('ERR_UNKNOWN_BUILTIN_MODULE', 'node:missing'),
-            ),
+            async () =>
+            {
+                const specifier = 'node:missing';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNKNOWN_BUILTIN_MODULE', specifier),
+                );
+            },
         );
 
         it
         (
             'directory with extension ".js"',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/dir-any.js'),
-                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-any.js'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/dir-any.js';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
+                );
+            },
         );
 
         it
         (
             'directory without extension',
-            () =>
-            assert.rejects
-            (
-                () => import0('.'),
-                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '.'),
-            ),
+            async () =>
+            {
+                const specifier = '.';
+                await
+                assert.rejects
+                (
+                    () => import0('.'),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
+                );
+            },
         );
 
         it
         (
             'file with an unsupported extension',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/cjs-capext-module.CJS'),
-                makeExpectedError
-                ('ERR_UNKNOWN_FILE_EXTENSION', '../fixtures/cjs-capext-module.CJS', TypeError),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/cjs-capext-module.CJS';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNKNOWN_FILE_EXTENSION', specifier, TypeError),
+                );
+            },
         );
 
         it
         (
             'file with extension ".js" when the next "package.json" file is invalid',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/invalid-package-json-dir/any.js'),
-                makeExpectedError
-                ('ERR_INVALID_PACKAGE_CONFIG', '../fixtures/invalid-package-json-dir/any.js'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/invalid-package-json-dir/any.js';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_INVALID_PACKAGE_CONFIG', specifier),
+                );
+            },
         );
 
         // Node 16 fails with a TypeError instead.
         it
         (
             'file with extension ".js" when the next "package.json" file is null',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/null-package-json-dir/any.js'),
-                makeExpectedError
-                ('ERR_INVALID_PACKAGE_CONFIG', '../fixtures/null-package-json-dir/any.js'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/null-package-json-dir/any.js';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_INVALID_PACKAGE_CONFIG', specifier),
+                );
+            },
         );
 
         it
         (
             'missing path with supported extension',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/missing.js'),
-                makeExpectedError('ERR_MODULE_NOT_FOUND', '../fixtures/missing.js'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/missing.js';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
+                );
+            },
         );
 
         it
         (
             'missing path with unsupported extension',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/missing.png'),
-                makeExpectedError('ERR_MODULE_NOT_FOUND', '../fixtures/missing.png'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/missing.png';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
+                );
+            },
         );
 
         it
         (
             'missing path with extension ".js" when the next "package.json" file is invalid',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/invalid-package-json-dir/missing.js'),
-                makeExpectedError
-                ('ERR_MODULE_NOT_FOUND', '../fixtures/invalid-package-json-dir/missing.js'),
-            ),
+            async () =>
+            {
+                const specifier = '../fixtures/invalid-package-json-dir/missing.js';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
+                );
+            },
+        );
+
+        it.per(['/', '\\'])
+        (
+            'path with trailing #',
+            async separator =>
+            {
+                const specifier = `../fixtures/missing-dir${separator}`;
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
+                );
+            },
         );
 
         it
         (
-            'path with trailing "/"',
-            () =>
-            assert.rejects
-            (
-                () => import0('../fixtures/dir-missing/'),
-                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-missing/'),
-            ),
+            'unsupported URL',
+            async () =>
+            {
+                const specifier = 'https://example.com';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_ESM_URL_SCHEME', specifier),
+                );
+            },
         );
 
-        it
+        // Node 16 is inconsistent in forbidding encoded backslashes
+        it.per
         (
-            'path with trailing "\\"',
-            () =>
+            [
+                { specifier: '', description: '""' },
+                { specifier: '@#$%', description: 'starting with "@"' },
+                { specifier: 'file:%2f', description: 'containing an encoded "/"' },
+                { specifier: 'file:%5C', description: 'containing an encoded "\\"' },
+            ],
+        )
+        (
+            'invalid module specifier #.description',
+            ({ specifier }) =>
             assert.rejects
             (
-                () => import0('../fixtures/dir-missing\\'),
-                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', '../fixtures/dir-missing\\'),
+                () => import0(specifier),
+                makeExpectedError('ERR_INVALID_MODULE_SPECIFIER', specifier),
             ),
         );
 

@@ -35,7 +35,7 @@ const FIXTURES =
     module.exports =
     async () =>
     {
-        const { default: import0 } = await import('../../import0.js');
+        const { default: import0 } = await import('import0');
 
         await import0('./any.js');
     };

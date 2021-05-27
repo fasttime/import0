@@ -24,13 +24,13 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('../../import0.js'));
+                ({ default: import0 } = await import('import0'));
             },
         );
 
         it
         (
-            'file URL object',
+            'file URL',
             async () =>
             {
                 const url = new URL('../fixtures/any.js', import.meta.url);
@@ -93,31 +93,32 @@ describe
         it
         (
             'package with missing main',
-            () => assert.rejects
-            (
-                () => import0('../fixtures/package-with-missing-main-importer.mjs'),
-                makeExpectedError
+            async () =>
+            {
+                const specifier = '../fixtures/package-with-missing-main-importer.mjs';
+                await
+                assert.rejects
                 (
-                    'ERR_MODULE_NOT_FOUND',
-                    'package-with-missing-main',
-                    '../fixtures/package-with-missing-main-importer.mjs',
-                ),
-            ),
+                    () => import0(specifier),
+                    makeExpectedError
+                    ('ERR_MODULE_NOT_FOUND', 'package-with-missing-main', specifier),
+                );
+            },
         );
 
         it
         (
             'missing package',
-            () => assert.rejects
-            (
-                () => import0('../fixtures/missing-package-importer.mjs'),
-                makeExpectedError
+            async () =>
+            {
+                const specifier = '../fixtures/missing-package-importer.mjs';
+                await
+                assert.rejects
                 (
-                    'ERR_MODULE_NOT_FOUND',
-                    'missing-package',
-                    '../fixtures/missing-package-importer.mjs',
-                ),
-            ),
+                    () => import0(specifier),
+                    makeExpectedError('ERR_MODULE_NOT_FOUND', 'missing-package', specifier),
+                );
+            },
         );
     },
 );
