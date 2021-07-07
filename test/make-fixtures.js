@@ -1,12 +1,27 @@
 #!/usr/bin/env node
 
-import { promises as fsPromises }   from 'fs';
-import { dirname, join }            from 'path';
-import { fileURLToPath }            from 'url';
+import { mkdir, rm, symlink, writeFile }    from 'fs/promises';
+import { dirname, join }                    from 'path';
+import { fileURLToPath }                    from 'url';
+
+function SymLink(target)
+{
+    const thisValue = new.target ? this : Object.create(SymLink.prototype);
+    thisValue.target = target;
+    return thisValue;
+}
 
 const FIXTURES =
 {
-    'any-package-importer-with-subpath.mjs':
+    'any-package-importer-with-dot-subpath.mjs':
+    `
+    import 'any-package/.';
+    `,
+    'any-package-importer-with-empty-subpath.mjs':
+    `
+    import 'any-package/';
+    `,
+    'any-package-importer-with-valid-subpath.mjs':
     `
     import 'any-package/any-module.mjs';
     `,
@@ -96,6 +111,14 @@ const FIXTURES =
             "type": "module"
         }
         `,
+        'self-link-package-json':
+        {
+            'module.js':
+            `
+            export default 'ES module';
+            `,
+            'package.json': SymLink('package.json'),
+        },
     },
     'invalid-package-json-dir':
     {
@@ -111,6 +134,22 @@ const FIXTURES =
     `
     import 'missing-package';
     `,
+    'module-importer':
+    {
+        'builtin.mjs':
+        `
+        export default await Promise.all([import('fs'), import('node:fs')]);
+        `,
+        'cjs.mjs':
+        `
+        export default
+        await Promise.all([import('../cjs/module.js'), import('./../cjs/module.js')]);
+        `,
+        'esm.mjs':
+        `
+        export default await Promise.all([import('../esm/module.js'), import('../esm/module.js')]);
+        `,
+    },
     'node_modules':
     {
         'any-package':
@@ -182,9 +221,8 @@ const FIXTURES =
     `
     import 'package-with-missing-main';
     `,
+    'self-link.js': SymLink('self-link.js'),
 };
-
-const { mkdir, rm, writeFile } = fsPromises;
 
 async function makeObject(path, data)
 {
@@ -196,16 +234,24 @@ async function makeObject(path, data)
     }
     else if (dataType === 'object')
     {
-        await mkdir(path);
-        const promises = [];
-        for (const name in data)
+        if (data instanceof SymLink)
         {
-            const subPath = join(path, name);
-            const subData = data[name];
-            const promise = makeObject(subPath, subData);
-            promises.push(promise);
+            const { target } = data;
+            await symlink(target, path);
         }
-        await Promise.all(promises);
+        else
+        {
+            await mkdir(path);
+            const promises = [];
+            for (const name in data)
+            {
+                const subPath = join(path, name);
+                const subData = data[name];
+                const promise = makeObject(subPath, subData);
+                promises.push(promise);
+            }
+            await Promise.all(promises);
+        }
     }
 }
 

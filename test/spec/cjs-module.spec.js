@@ -34,11 +34,10 @@ describe
                     ext: 'Extended export',
                 };
                 Object.defineProperty(expected, Symbol.toStringTag, { value: 'Module' });
-                assert.deepStrictEqual(actual, expected);
-                assert.deepStrictEqual
+                assert.deepEqual(actual, expected);
+                assert.deepEqual
                 (Reflect.ownKeys(actual), ['aux', 'default', 'ext', Symbol.toStringTag]);
-                assert.deepStrictEqual
-                (Reflect.ownKeys(actual.default), ['ext', 'default', 'aux']);
+                assert.deepEqual(Reflect.ownKeys(actual.default), ['ext', 'default', 'aux']);
             },
         );
 
@@ -50,9 +49,9 @@ describe
                 const actual = await import0('../fixtures/cjs-no-exports-module.cjs');
                 const expected = { __proto__: null, default: { } };
                 Object.defineProperty(expected, Symbol.toStringTag, { value: 'Module' });
-                assert.deepStrictEqual(actual, expected);
-                assert.deepStrictEqual(Reflect.ownKeys(actual), ['default', Symbol.toStringTag]);
-                assert.deepStrictEqual(Reflect.ownKeys(actual.default), []);
+                assert.deepEqual(actual, expected);
+                assert.deepEqual(Reflect.ownKeys(actual), ['default', Symbol.toStringTag]);
+                assert.deepEqual(Reflect.ownKeys(actual.default), []);
             },
         );
 
@@ -73,16 +72,16 @@ describe
                     __dirname,
                 } =
                 await import0(specifier);
-                assert.strictEqual(thisValue, exports);
-                assert.strictEqual(exports, defaultExport);
-                assert.strictEqual(typeof require, 'function');
-                assert.strictEqual(require.length, 1);
-                assert.strictEqual(require.name, 'require');
-                assert.strictEqual(module.constructor, Module);
+                assert.equal(thisValue, exports);
+                assert.equal(exports, defaultExport);
+                assert.equal(typeof require, 'function');
+                assert.equal(require.length, 1);
+                assert.equal(require.name, 'require');
+                assert.equal(module.constructor, Module);
                 const expectedFilename = fileURLToPath(new URL(specifier, import.meta.url));
-                assert.strictEqual(__filename, expectedFilename);
+                assert.equal(__filename, expectedFilename);
                 const expectedDirname = fileURLToPath(new URL('../fixtures', import.meta.url));
-                assert.strictEqual(__dirname, expectedDirname);
+                assert.equal(__dirname, expectedDirname);
             },
         );
     },

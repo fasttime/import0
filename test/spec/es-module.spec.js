@@ -1,6 +1,7 @@
 /* eslint-env ebdd/ebdd */
 
-import assert from 'assert/strict';
+import assert                       from 'assert/strict';
+import { isModuleNamespaceObject }  from 'util/types';
 
 describe
 (
@@ -20,6 +21,8 @@ describe
             },
         );
 
+        it('module namespace', () => assert(isModuleNamespaceObject(namespace)));
+
         it
         (
             'import.meta',
@@ -27,8 +30,8 @@ describe
             {
                 const { meta } = namespace;
                 const url = new URL(SPECIFIER, import.meta.url).toString();
-                assert.deepStrictEqual(meta, { __proto__: null, url });
-                assert.deepStrictEqual
+                assert.deepEqual(meta, { __proto__: null, url });
+                assert.deepEqual
                 (
                     Object.getOwnPropertyDescriptor(meta, 'url'),
                     { value: url, writable: true, enumerable: true, configurable: true },
@@ -36,10 +39,6 @@ describe
             },
         );
 
-        it
-        (
-            'this',
-            () => assert.strictEqual(namespace.thisValue, undefined),
-        );
+        it('this', () => assert.equal(namespace.thisValue, undefined));
     },
 );

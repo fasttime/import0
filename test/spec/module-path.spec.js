@@ -76,10 +76,40 @@ describe
 
         it
         (
-            'package with subpath',
+            'package with valid subpath',
             () =>
             assert.doesNotReject
-            (() => import0('../fixtures/any-package-importer-with-subpath.mjs')),
+            (() => import0('../fixtures/any-package-importer-with-valid-subpath.mjs')),
+        );
+
+        it
+        (
+            'package with subpath ""',
+            async () =>
+            {
+                const specifier = '../fixtures/any-package-importer-with-empty-subpath.mjs';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', 'any-package/', specifier),
+                );
+            },
+        );
+
+        it
+        (
+            'package with subpath "."',
+            async () =>
+            {
+                const specifier = '../fixtures/any-package-importer-with-dot-subpath.mjs';
+                await
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', 'any-package/.', specifier),
+                );
+            },
         );
 
         it

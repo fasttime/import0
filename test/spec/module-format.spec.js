@@ -35,7 +35,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('../fixtures/cjs-module.cjs');
-                assert.strictEqual(actual, 'CommonJS module');
+                assert.equal(actual, 'CommonJS module');
             },
         );
 
@@ -45,7 +45,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('../fixtures/es-module.mjs');
-                assert.strictEqual(actual, 'ES module');
+                assert.equal(actual, 'ES module');
             },
         );
 
@@ -55,7 +55,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('../fixtures/cjs/module.js');
-                assert.strictEqual(actual, 'CommonJS module');
+                assert.equal(actual, 'CommonJS module');
             },
         );
 
@@ -65,7 +65,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('../fixtures/node_modules/module.js');
-                assert.strictEqual(actual, 'CommonJS module');
+                assert.equal(actual, 'CommonJS module');
             },
         );
 
@@ -75,7 +75,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('../fixtures/esm/module.js');
-                assert.strictEqual(actual, 'ES module');
+                assert.equal(actual, 'ES module');
             },
         );
 
@@ -86,7 +86,18 @@ describe
             {
                 const { default: actual } =
                 await import0('../fixtures/esm/dir-package-json/module.js');
-                assert.strictEqual(actual, 'ES module');
+                assert.equal(actual, 'ES module');
+            },
+        );
+
+        it
+        (
+            'file with extension ".js" ignoring a self-targeting "package.json" link',
+            async () =>
+            {
+                const { default: actual } =
+                await import0('../fixtures/esm/self-link-package-json/module.js');
+                assert.equal(actual, 'ES module');
             },
         );
 
@@ -96,7 +107,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('assert/strict');
-                assert.strictEqual(actual, assert);
+                assert.equal(actual, assert);
             },
         );
 
@@ -106,7 +117,7 @@ describe
             async () =>
             {
                 const { default: actual } = await import0('node:assert/strict');
-                assert.strictEqual(actual, assert);
+                assert.equal(actual, assert);
             },
         );
 
@@ -315,6 +326,17 @@ describe
             (
                 () => import0('file:///C:/System%20Volume%20Information'),
                 { code: 'EPERM', constructor: Error },
+            ),
+        );
+
+        it
+        (
+            'self-targeting link',
+            () =>
+            assert.rejects
+            (
+                () => import0('../fixtures/self-link.js'),
+                { code: 'ELOOP', constructor: Error },
             ),
         );
     },

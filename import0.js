@@ -1,5 +1,5 @@
 import { init, parse }                              from 'cjs-module-lexer';
-import { promises as fsPromises }                   from 'fs';
+import { readFile, stat }                           from 'fs/promises';
 import Module, { builtinModules, createRequire }    from 'module';
 import { basename, dirname, extname, join }         from 'path';
 import { fileURLToPath, pathToFileURL }             from 'url';
@@ -22,7 +22,6 @@ const MAIN_FILE_POSTFIXES       =
 const _Error_captureStackTrace  = Error.captureStackTrace;
 const _JSON_parse               = JSON.parse;
 const _Object_keys              = Object.keys;
-const { readFile, stat }        = fsPromises;
 
 function captureStackTrace(constructorOpt, stackTraceLimit)
 {
@@ -55,59 +54,59 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
 
 function createImportModuleDynamically()
 {
-    async function getPackageConfig(packageJSONPath, specifier, referencingModuleURL)
+    function getPackageConfig(packagePath, specifier, referencingModuleURL)
     {
-        let packageConfig;
-        if (packageJSONPath in packageConfigCache)
-            packageConfig = packageConfigCache[packageJSONPath];
-        else
-        {
-            let text;
-            try
+        const packageConfigPromise =
+        packageConfigCache[packagePath] ??
+        (
+            packageConfigCache[packagePath] =
+            (async () =>
             {
-                text = await readTextFile(packageJSONPath);
-            }
-            catch (error)
-            {
-                const { code } = error;
-                if (code !== 'ENOENT' && code !== 'EISDIR')
-                    throw error;
-            }
-            if (text != null)
-            {
-                let json;
+                let text;
+                const packageJSONPath = join(packagePath, 'package.json');
                 try
                 {
-                    json = _JSON_parse(text);
+                    text = await readTextFile(packageJSONPath);
                 }
                 catch
                 { }
-                if (json == null)
+                if (text != null)
                 {
-                    const messageFormat =
-                    `Invalid package config "${packageJSONPath}" found while resolving %s`;
-                    throwImportError
-                    (
-                        'ERR_INVALID_PACKAGE_CONFIG',
-                        messageFormat,
-                        specifier,
-                        referencingModuleURL,
-                    );
+                    let json;
+                    try
+                    {
+                        json = _JSON_parse(text);
+                    }
+                    catch
+                    { }
+                    if (json == null)
+                    {
+                        const messageFormat =
+                        `Invalid package config "${packageJSONPath}" found while resolving %s`;
+                        throwImportError
+                        (
+                            'ERR_INVALID_PACKAGE_CONFIG',
+                            messageFormat,
+                            specifier,
+                            referencingModuleURL,
+                        );
+                    }
+                    const { main, type } = json;
+                    const isESModuleFlag = type === 'module';
+                    const packageMain = typeof main === 'string' ? main : undefined;
+                    const packageConfig = { isESModuleFlag, packageMain };
+                    return packageConfig;
                 }
-                const { main, type } = json;
-                const isESModuleFlag = type === 'module';
-                const packageMain = typeof main === 'string' ? main : undefined;
-                packageConfig = { isESModuleFlag, packageMain };
             }
-            packageConfigCache[packageJSONPath] = packageConfig;
-        }
-        return packageConfig;
+            )()
+        );
+        return packageConfigPromise;
     }
 
     async function importModuleDynamically(specifier, { context, identifier: referencingModuleURL })
     {
         let identifier;
-        let module;
+        let moduleSupplier;
         specifier = `${specifier}`;
         const protocol = specifier.match(/^[a-z][+\-.0-9a-z]*:/i)?.[0];
         if (protocol === 'node:')
@@ -128,11 +127,13 @@ function createImportModuleDynamically()
             identifier = `node:${specifier}`;
         if (identifier)
         {
-            module = moduleCache[identifier];
-            if (module)
+            moduleSupplier =
+            async () =>
+            {
+                const namespace = await import(identifier);
+                const module = createSyntheticBuiltinModule(namespace, { context, identifier });
                 return module;
-            const namespace = await import(identifier);
-            module = createSyntheticBuiltinModule(namespace, { context, identifier });
+            };
         }
         else
         {
@@ -167,33 +168,54 @@ function createImportModuleDynamically()
             }
             const modulePath = fileURLToPath(moduleURL);
             identifier = moduleURL.toString();
-            module = moduleCache[identifier];
-            if (module)
+            moduleSupplier =
+            async () =>
+            {
+                let module;
+                await checkModulePath(modulePath, specifier, referencingModuleURL);
+                const isESModuleFlag =
+                await isESModule(modulePath, specifier, referencingModuleURL);
+                const source = await readTextFile(modulePath);
+                if (isESModuleFlag)
+                {
+                    module =
+                    createSourceTextModule
+                    (
+                        source,
+                        { context, identifier, importModuleDynamically, initializeImportMeta },
+                    );
+                }
+                else
+                {
+                    const compiledWrapper =
+                    compileFunction
+                    (
+                        source,
+                        CREATE_FUNCTION_PARAMS,
+                        { filename: modulePath, importModuleDynamically },
+                    );
+                    const { exports: exportNames } = parse(source);
+                    module =
+                    createSyntheticCJSModule
+                    (modulePath, compiledWrapper, exportNames, { context, identifier });
+                }
                 return module;
-            await checkModulePath(modulePath, specifier, referencingModuleURL);
-            const isESModuleFlag = await isESModule(modulePath, specifier, referencingModuleURL);
-            const source = await readTextFile(modulePath);
-            if (isESModuleFlag)
-            {
-                module =
-                createSourceTextModule
-                (source, { context, identifier, importModuleDynamically, initializeImportMeta });
-            }
-            else
-            {
-                const compiledWrapper =
-                compileFunction
-                (source, CREATE_FUNCTION_PARAMS, { filename: modulePath, importModuleDynamically });
-                const { exports: exportNames } = parse(source);
-                module =
-                createSyntheticCJSModule
-                (modulePath, compiledWrapper, exportNames, { context, identifier });
-            }
+            };
         }
-        moduleCache[identifier] = module;
-        await module.link(importModuleDynamically);
-        await module.evaluate();
-        return module;
+        const modulePromise =
+        moduleCache[identifier] ??
+        (
+            moduleCache[identifier] =
+            (async () =>
+            {
+                const module = await moduleSupplier();
+                await module.link(importModuleDynamically);
+                await module.evaluate();
+                return module;
+            }
+            )()
+        );
+        return modulePromise;
     }
 
     async function isESModule(modulePath, specifier, referencingModuleURL)
@@ -206,9 +228,8 @@ function createImportModuleDynamically()
             {
                 if (basename(packagePath) === 'node_modules')
                     break;
-                const packageJSONPath = join(packagePath, 'package.json');
                 const packageConfig =
-                await getPackageConfig(packageJSONPath, specifier, referencingModuleURL);
+                await getPackageConfig(packagePath, specifier, referencingModuleURL);
                 if (packageConfig)
                     return packageConfig.isESModuleFlag;
                 const nextPackagePath = dirname(packagePath);
@@ -246,7 +267,7 @@ function createImportModuleDynamically()
             throwImportError
             (
                 'ERR_INVALID_MODULE_SPECIFIER',
-                'Invalid specifier %',
+                'Invalid specifier %s',
                 specifier,
                 referencingModuleURL,
             );
@@ -254,11 +275,10 @@ function createImportModuleDynamically()
         const [, packageName, packageSubpath] = match;
         let modulePath;
         const packagePath = await findPackagePath(packageName, specifier, referencingModuleURL);
-        if (!packageSubpath || packageSubpath === '.')
+        if (packageSubpath == null)
         {
-            const packageJSONPath = join(packagePath, 'package.json');
             const packageConfig =
-            await getPackageConfig(packageJSONPath, specifier, referencingModuleURL);
+            await getPackageConfig(packagePath, specifier, referencingModuleURL);
             modulePath = await findMainPath(packagePath, packageConfig?.packageMain);
             if (modulePath == null)
                 handleModuleNotFound(specifier, referencingModuleURL);
