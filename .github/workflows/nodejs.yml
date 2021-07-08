@@ -1,0 +1,36 @@
+name: Node.js CI
+
+on: [push, pull_request]
+
+jobs:
+
+  lint:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: 16.x
+    - run: npm install
+    - run: npm run lint
+
+  test:
+
+    name: test (on ${{ matrix.runs-on }})
+
+    runs-on: ${{ matrix.runs-on }}
+
+    strategy:
+      matrix:
+        runs-on: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: 16.x
+    - run: npm install
+    - run: npm run make-fixtures
+    - run: npm test
