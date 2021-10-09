@@ -29,13 +29,48 @@ describe
             () =>
             {
                 const { meta } = namespace;
-                const url = new URL(SPECIFIER, import.meta.url).toString();
-                assert.deepEqual(meta, { __proto__: null, url });
+                assert.equal(Object.getPrototypeOf(meta), null);
+                const { resolve, url } = meta;
                 assert.deepEqual
                 (
-                    Object.getOwnPropertyDescriptor(meta, 'url'),
-                    { value: url, writable: true, enumerable: true, configurable: true },
+                    Object.getOwnPropertyDescriptors(meta),
+                    {
+                        resolve:
+                        { value: resolve, writable: true, enumerable: true, configurable: true },
+                        url:
+                        { value: url, writable: true, enumerable: true, configurable: true },
+                    },
                 );
+            },
+        );
+
+        it
+        (
+            'import.meta.url',
+            () =>
+            {
+                const actual = namespace.meta.url;
+                const expected = new URL(SPECIFIER, import.meta.url).toString();
+                assert.equal(actual, expected);
+            },
+        );
+
+        it
+        (
+            'import.meta.resolve',
+            async () =>
+            {
+                const { resolve } = namespace.meta;
+                assert.equal(typeof resolve, 'function');
+                // eslint-disable-next-line require-await
+                const AsyncFunction = (async () => null).constructor;
+                assert.equal(Object.getPrototypeOf(resolve), AsyncFunction.prototype);
+                assert.equal(resolve.length, 1);
+                assert.equal(resolve.name, 'resolve');
+                assert.equal(resolve.prototype, undefined);
+                const actual = await resolve('.');
+                const expected = new URL('.', new URL(SPECIFIER, import.meta.url)).toString();
+                assert.strictEqual(actual, expected);
             },
         );
 

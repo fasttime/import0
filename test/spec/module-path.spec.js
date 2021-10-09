@@ -4,6 +4,9 @@ import assert                           from 'assert/strict';
 import { dirname, resolve }             from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
+const MODULE_IMPORTER_URL       = '../fixtures/module-importer.mjs';
+const MODULE_IMPORTER_FULL_URL  = new URL(MODULE_IMPORTER_URL, import.meta.url).toString();
+
 function makeExpectedError(code, specifier, referencingModulePath)
 {
     const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -18,13 +21,42 @@ describe
     'Module path resolution',
     () =>
     {
+        function resolveModuleURL(...args)
+        {
+            lastResolveModuleURLArgs = args;
+            const promise = originalResolveModuleURL(...args);
+            return promise;
+        }
+
         let import0;
+        let setResolveModuleURL;
 
         before
         (
             async () =>
             {
-                ({ default: import0 } = await import('import0'));
+                ({ default: import0, setResolveModuleURL } = await import('import0'));
+            },
+        );
+
+        let lastResolveModuleURLArgs;
+        let originalResolveModuleURL;
+
+        beforeEach
+        (
+            () =>
+            {
+                originalResolveModuleURL = setResolveModuleURL(resolveModuleURL);
+            },
+        );
+
+        afterEach
+        (
+            () =>
+            {
+                setResolveModuleURL(originalResolveModuleURL);
+                originalResolveModuleURL = undefined;
+                lastResolveModuleURLArgs = undefined;
             },
         );
 
@@ -35,6 +67,7 @@ describe
             {
                 const url = new URL('../fixtures/any.js', import.meta.url);
                 await assert.doesNotReject(() => import0(url));
+                assert.deepEqual(lastResolveModuleURLArgs, undefined);
             },
         );
 
@@ -46,13 +79,18 @@ describe
                 let url = new URL('../fixtures/any.js', import.meta.url);
                 url = url.toString().replace(/^file:\/\/\//, 'file:');
                 await assert.doesNotReject(() => import0(url));
+                assert.deepEqual(lastResolveModuleURLArgs, undefined);
             },
         );
 
         it
         (
             'relative path',
-            () => assert.doesNotReject(() => import0('../fixtures/any.js')),
+            async () =>
+            {
+                await assert.doesNotReject(() => import0('../fixtures/any.js'));
+                assert.deepEqual(lastResolveModuleURLArgs, undefined);
+            },
         );
 
         it.when(process.platform !== 'win32')
@@ -63,23 +101,32 @@ describe
                 const url = new URL('../fixtures/any.js', import.meta.url);
                 const path = fileURLToPath(url);
                 await assert.doesNotReject(() => import0(path));
+                assert.deepEqual(lastResolveModuleURLArgs, undefined);
             },
         );
 
         it
         (
             'package without subpath',
-            () =>
-            assert.doesNotReject
-            (() => import0('../fixtures/any-package-importer-without-subpath.mjs')),
+            async () =>
+            {
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
+                const specifier = 'any-package';
+                await assert.doesNotReject(() => importer(specifier));
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+            },
         );
 
         it
         (
             'package with valid subpath',
-            () =>
-            assert.doesNotReject
-            (() => import0('../fixtures/any-package-importer-with-valid-subpath.mjs')),
+            async () =>
+            {
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
+                const specifier = 'any-package/any-module.mjs';
+                await assert.doesNotReject(() => importer(specifier));
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+            },
         );
 
         it
@@ -87,13 +134,15 @@ describe
             'package with subpath ""',
             async () =>
             {
-                const specifier = '../fixtures/any-package-importer-with-empty-subpath.mjs';
+                const specifier = 'any-package/';
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
                 await
                 assert.rejects
                 (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', 'any-package/', specifier),
+                    () => importer(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier, MODULE_IMPORTER_URL),
                 );
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
@@ -102,22 +151,28 @@ describe
             'package with subpath "."',
             async () =>
             {
-                const specifier = '../fixtures/any-package-importer-with-dot-subpath.mjs';
+                const specifier = 'any-package/.';
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
                 await
                 assert.rejects
                 (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', 'any-package/.', specifier),
+                    () => importer(specifier),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier, MODULE_IMPORTER_URL),
                 );
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
         it
         (
             'package with main',
-            () =>
-            assert.doesNotReject
-            (() => import0('../fixtures/package-with-main-importer.mjs')),
+            async () =>
+            {
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
+                const specifier = 'package-with-main';
+                await assert.doesNotReject(() => importer(specifier));
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+            },
         );
 
         it
@@ -125,14 +180,12 @@ describe
             'package with missing main',
             async () =>
             {
-                const specifier = '../fixtures/package-with-missing-main-importer.mjs';
+                const specifier = 'package-with-missing-main';
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
                 await
                 assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError
-                    ('ERR_MODULE_NOT_FOUND', 'package-with-missing-main', specifier),
-                );
+                (() => importer(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error });
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
@@ -141,13 +194,12 @@ describe
             'missing package',
             async () =>
             {
-                const specifier = '../fixtures/missing-package-importer.mjs';
+                const specifier = 'missing-package';
+                const { default: importer } = await import0(MODULE_IMPORTER_URL);
                 await
                 assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_MODULE_NOT_FOUND', 'missing-package', specifier),
-                );
+                (() => importer(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error });
+                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
     },

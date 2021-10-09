@@ -1,23 +1,15 @@
 import { init, parse }                              from 'cjs-module-lexer';
+import { randomUUID }                               from 'crypto';
 import { readFile, stat }                           from 'fs/promises';
 import Module, { builtinModules, createRequire }    from 'module';
 import { basename, dirname, extname, join }         from 'path';
 import { fileURLToPath, pathToFileURL }             from 'url';
 import { format }                                   from 'util';
-import
-{
-    SourceTextModule,
-    SyntheticModule,
-    compileFunction,
-    createContext,
-}                                                   from 'vm';
+
+import { SourceTextModule, SyntheticModule, compileFunction, createContext }
+from 'vm';
 
 const CREATE_FUNCTION_PARAMS    = ['exports', 'require', 'module', '__filename', '__dirname'];
-
-const MAIN_FILE_BASE_NAMES      = ['index.js', 'index.json', 'index.node'];
-
-const MAIN_FILE_POSTFIXES       =
-['', '.js', '.json', '.node', '/index.js', '/index.json', '/index.node'];
 
 const _Error_captureStackTrace  = Error.captureStackTrace;
 const _JSON_parse               = JSON.parse;
@@ -52,250 +44,241 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
     );
 }
 
+function createImportMetaResolve(defaultParentURL)
+{
+    const resolve =
+    async (specifier, referencingModuleURL = defaultParentURL) =>
+    // eslint-disable-next-line no-return-await
+    await resolveModuleURL(specifier, referencingModuleURL);
+    return resolve;
+}
+
 function createImportModuleDynamically()
 {
-    function getPackageConfig(packagePath, specifier, referencingModuleURL)
+    async function getIsESModuleFlagSupplier(packagePath)
     {
-        const packageConfigPromise =
-        packageConfigCache[packagePath] ??
-        (
-            packageConfigCache[packagePath] =
-            (async () =>
+        let text;
+        const packageJSONPath = join(packagePath, 'package.json');
+        try
+        {
+            text = await readTextFile(packageJSONPath);
+        }
+        catch
+        { }
+        if (text != null)
+        {
+            let json;
+            try
             {
-                let text;
-                const packageJSONPath = join(packagePath, 'package.json');
-                try
-                {
-                    text = await readTextFile(packageJSONPath);
-                }
-                catch
-                { }
-                if (text != null)
-                {
-                    let json;
-                    try
-                    {
-                        json = _JSON_parse(text);
-                    }
-                    catch
-                    { }
-                    if (json == null)
-                    {
-                        const messageFormat =
-                        `Invalid package config "${packageJSONPath}" found while resolving %s`;
-                        throwImportError
-                        (
-                            'ERR_INVALID_PACKAGE_CONFIG',
-                            messageFormat,
-                            specifier,
-                            referencingModuleURL,
-                        );
-                    }
-                    const { main, type } = json;
-                    const isESModuleFlag = type === 'module';
-                    const packageMain = typeof main === 'string' ? main : undefined;
-                    const packageConfig = { isESModuleFlag, packageMain };
-                    return packageConfig;
-                }
+                json = _JSON_parse(text);
             }
-            )()
-        );
-        return packageConfigPromise;
+            catch
+            { }
+            if (json == null)
+                return null;
+            const { type } = json;
+            const isESModuleFlag = type === 'module';
+            return isESModuleFlag;
+        }
     }
 
     async function importModuleDynamically(specifier, { context, identifier: referencingModuleURL })
     {
-        let identifier;
-        let moduleSupplier;
-        specifier = `${specifier}`;
-        const protocol = specifier.match(/^[a-z][+\-.0-9a-z]*:/i)?.[0];
-        if (protocol === 'node:')
+        async function getIsESModuleFlag(packagePath)
         {
-            if (!builtinModules.includes(specifier.slice(5)))
-            {
-                throwImportError
-                (
-                    'ERR_UNKNOWN_BUILTIN_MODULE',
-                    'Unknown builtin module %s',
-                    specifier,
-                    referencingModuleURL,
-                );
-            }
-            identifier = specifier;
+            const isESModuleFlagPromise =
+            isESModuleFlagCache[packagePath] ??
+            (isESModuleFlagCache[packagePath] = getIsESModuleFlagSupplier(packagePath));
+            const isESModuleFlag = await isESModuleFlagPromise;
+            if (isESModuleFlag === null)
+                throwPackageConfigError(packagePath, specifier, referencingModuleURL);
+            return isESModuleFlag;
         }
-        else if (builtinModules.includes(specifier))
-            identifier = `node:${specifier}`;
-        if (identifier)
-        {
-            moduleSupplier =
-            async () =>
-            {
-                const namespace = await import(identifier);
-                const module = createSyntheticBuiltinModule(namespace, { context, identifier });
-                return module;
-            };
-        }
-        else
-        {
-            let moduleURL;
-            if (protocol === 'file:' || /^[./]/.test(specifier))
-            {
-                const match = specifier.match(/%(?:2f|5c)/i);
-                if (match)
-                {
-                    const messageFormat = `Invalid encoded character "${match}" in %s`;
-                    throwImportError
-                    (
-                        'ERR_INVALID_MODULE_SPECIFIER',
-                        messageFormat,
-                        specifier,
-                        referencingModuleURL,
-                    );
-                }
-                moduleURL = new URL(specifier, protocol ? undefined : referencingModuleURL);
-            }
-            else if (!protocol)
-                moduleURL = await resolvePackageURL(specifier, referencingModuleURL);
-            else
-            {
-                throwImportError
-                (
-                    'ERR_UNSUPPORTED_ESM_URL_SCHEME',
-                    `Unsupported URL protocol "${protocol}" in %s`,
-                    specifier,
-                    referencingModuleURL,
-                );
-            }
-            const modulePath = fileURLToPath(moduleURL);
-            identifier = moduleURL.toString();
-            moduleSupplier =
-            async () =>
-            {
-                let module;
-                await checkModulePath(modulePath, specifier, referencingModuleURL);
-                const isESModuleFlag =
-                await isESModule(modulePath, specifier, referencingModuleURL);
-                const source = await readTextFile(modulePath);
-                if (isESModuleFlag)
-                {
-                    module =
-                    createSourceTextModule
-                    (
-                        source,
-                        { context, identifier, importModuleDynamically, initializeImportMeta },
-                    );
-                }
-                else
-                {
-                    const compiledWrapper =
-                    compileFunction
-                    (
-                        source,
-                        CREATE_FUNCTION_PARAMS,
-                        { filename: modulePath, importModuleDynamically },
-                    );
-                    const { exports: exportNames } = parse(source);
-                    module =
-                    createSyntheticCJSModule
-                    (modulePath, compiledWrapper, exportNames, { context, identifier });
-                }
-                return module;
-            };
-        }
-        const modulePromise =
-        moduleCache[identifier] ??
-        (
-            moduleCache[identifier] =
-            (async () =>
-            {
-                const module = await moduleSupplier();
-                await module.link(importModuleDynamically);
-                await module.evaluate();
-                return module;
-            }
-            )()
-        );
-        return modulePromise;
-    }
 
-    async function isESModule(modulePath, specifier, referencingModuleURL)
-    {
-        const extension = extname(modulePath);
-        switch (extension)
+        async function getPackageScopeIsESModuleFlag(packagePath)
         {
-        case '.js':
-            for (let packagePath = dirname(modulePath); ;)
+            while (basename(packagePath) !== 'node_modules')
             {
-                if (basename(packagePath) === 'node_modules')
-                    break;
-                const packageConfig =
-                await getPackageConfig(packagePath, specifier, referencingModuleURL);
-                if (packageConfig)
-                    return packageConfig.isESModuleFlag;
+                const isESModuleFlag = await getIsESModuleFlag(packagePath);
+                if (isESModuleFlag != null)
+                    return isESModuleFlag;
                 const nextPackagePath = dirname(packagePath);
                 if (nextPackagePath === packagePath)
                     break;
                 packagePath = nextPackagePath;
             }
-            return false;
-        case '.mjs':
-            return true;
-        case '.cjs':
-            return false;
-        default:
-        {
-            const messageFormat =
-            `Unrecognized file extension "${extension}" for "${modulePath}" found while ` +
-            'resolving %s';
-            throwImportError
-            (
-                'ERR_UNKNOWN_FILE_EXTENSION',
-                messageFormat,
-                specifier,
-                referencingModuleURL,
-                TypeError,
-            );
         }
+
+        async function isESModule(modulePath)
+        {
+            const extension = extname(modulePath);
+            switch (extension)
+            {
+            case '.js':
+            {
+                const packagePath = dirname(modulePath);
+                const isESModuleFlag = await getPackageScopeIsESModuleFlag(packagePath) ?? false;
+                return isESModuleFlag;
+            }
+            case '.mjs':
+                return true;
+            case '.cjs':
+                return false;
+            default:
+            {
+                const messageFormat =
+                `Unrecognized file extension "${extension}" for "${modulePath}" found while ` +
+                'resolving %s';
+                throwImportError
+                (
+                    'ERR_UNKNOWN_FILE_EXTENSION',
+                    messageFormat,
+                    specifier,
+                    referencingModuleURL,
+                    TypeError,
+                );
+            }
+            }
+        }
+
+        {
+            let identifier;
+            let moduleSupplier;
+            specifier = `${specifier}`;
+            const protocol = specifier.match(/^[a-z][+\-.0-9a-z]*:/i)?.[0];
+            if (protocol === 'node:')
+            {
+                if (!builtinModules.includes(specifier.slice(5)))
+                {
+                    throwImportError
+                    (
+                        'ERR_UNKNOWN_BUILTIN_MODULE',
+                        'Unknown builtin module %s',
+                        specifier,
+                        referencingModuleURL,
+                    );
+                }
+                identifier = specifier;
+            }
+            else if (builtinModules.includes(specifier))
+                identifier = `node:${specifier}`;
+            if (identifier)
+            {
+                moduleSupplier =
+                async () =>
+                {
+                    const namespace = await import(identifier);
+                    const module = createSyntheticBuiltinModule(namespace, { context, identifier });
+                    return module;
+                };
+            }
+            else
+            {
+                let moduleURL;
+                if (protocol === 'file:' || /^[./]/.test(specifier))
+                {
+                    const match = specifier.match(/%(?:2f|5c)/i);
+                    if (match)
+                    {
+                        const messageFormat = `Invalid encoded character "${match}" in %s`;
+                        throwImportError
+                        (
+                            'ERR_INVALID_MODULE_SPECIFIER',
+                            messageFormat,
+                            specifier,
+                            referencingModuleURL,
+                        );
+                    }
+                    moduleURL = new URL(specifier, protocol ? undefined : referencingModuleURL);
+                }
+                else if (!protocol)
+                {
+                    const match =
+                    specifier.match(/^([^%@\\][^%/\\]*|@[^%/\\]+\/[^%/\\]+)(?:\/(.*))?$/s);
+                    if (!match)
+                    {
+                        throwImportError
+                        (
+                            'ERR_INVALID_MODULE_SPECIFIER',
+                            'Invalid specifier %s',
+                            specifier,
+                            referencingModuleURL,
+                        );
+                    }
+                    moduleURL = await resolveModuleURL(specifier, referencingModuleURL);
+                }
+                else
+                {
+                    throwImportError
+                    (
+                        'ERR_UNSUPPORTED_ESM_URL_SCHEME',
+                        `Unsupported URL protocol "${protocol}" in %s`,
+                        specifier,
+                        referencingModuleURL,
+                    );
+                }
+                const modulePath = fileURLToPath(moduleURL);
+                identifier = moduleURL.toString();
+                moduleSupplier =
+                async () =>
+                {
+                    let module;
+                    await checkModulePath(modulePath, specifier, referencingModuleURL);
+                    const isESModuleFlag = await isESModule(modulePath);
+                    const source = await readTextFile(modulePath);
+                    if (isESModuleFlag)
+                    {
+                        module =
+                        createSourceTextModule
+                        (
+                            source,
+                            { context, identifier, importModuleDynamically, initializeImportMeta },
+                        );
+                    }
+                    else
+                    {
+                        const compiledWrapper =
+                        compileFunction
+                        (
+                            source,
+                            CREATE_FUNCTION_PARAMS,
+                            { filename: modulePath, importModuleDynamically },
+                        );
+                        const { exports: exportNames } = parse(source);
+                        module =
+                        createSyntheticCJSModule
+                        (modulePath, compiledWrapper, exportNames, { context, identifier });
+                    }
+                    return module;
+                };
+            }
+            const modulePromise =
+            moduleCache[identifier] ??
+            (
+                moduleCache[identifier] =
+                (async () =>
+                {
+                    const module = await moduleSupplier();
+                    await module.link(importModuleDynamically);
+                    await module.evaluate();
+                    return module;
+                }
+                )()
+            );
+            return modulePromise;
         }
     }
 
-    async function resolvePackageURL(specifier, referencingModuleURL)
-    {
-        const match = specifier.match(/^([^@][^/]*|@[^/]+\/[^/]+)(?:\/(.*))?$/s);
-        if (!match)
-        {
-            throwImportError
-            (
-                'ERR_INVALID_MODULE_SPECIFIER',
-                'Invalid specifier %s',
-                specifier,
-                referencingModuleURL,
-            );
-        }
-        const [, packageName, packageSubpath] = match;
-        let modulePath;
-        const packagePath = await findPackagePath(packageName, specifier, referencingModuleURL);
-        if (packageSubpath == null)
-        {
-            const packageConfig =
-            await getPackageConfig(packagePath, specifier, referencingModuleURL);
-            modulePath = await findMainPath(packagePath, packageConfig?.packageMain);
-            if (modulePath == null)
-                handleModuleNotFound(specifier, referencingModuleURL);
-        }
-        else
-            modulePath = join(packagePath, packageSubpath);
-        const moduleURL = pathToFileURL(modulePath);
-        return moduleURL;
-    }
-
-    const packageConfigCache = { __proto__: null };
+    const isESModuleFlagCache = { __proto__: null };
     const moduleCache = { __proto__: null };
     return importModuleDynamically;
 }
 
 function createSourceTextModule(source, options)
 {
+    // Required to disable importModuleDynamically caching.
+    // See https://github.com/nodejs/node/issues/36351
+    source += `\n// Added by import0: ${randomUUID()}`;
     const module = wrapModuleConstructor(SourceTextModule, source, options);
     return module;
 }
@@ -351,49 +334,6 @@ function createSyntheticCJSModule(modulePath, compiledWrapper, exportNames, opti
     return module;
 }
 
-async function fileExists(path)
-{
-    const stats = await tryStat(path);
-    const result = stats != null && stats.isFile();
-    return result;
-}
-
-async function findMainPath(packagePath, packageMain)
-{
-    if (packageMain !== undefined)
-    {
-        for (const postfix of MAIN_FILE_POSTFIXES)
-        {
-            const baseName = `${packageMain}${postfix}`;
-            const guess = join(packagePath, baseName);
-            if (await fileExists(guess))
-                return guess;
-        }
-    }
-    for (const baseName of MAIN_FILE_BASE_NAMES)
-    {
-        const guess = join(packagePath, baseName);
-        if (await fileExists(guess))
-            return guess;
-    }
-}
-
-async function findPackagePath(packageName, specifier, referencingModuleURL)
-{
-    for (let path = fileURLToPath(new URL('.', referencingModuleURL)); ;)
-    {
-        const packagePath = join(path, 'node_modules', packageName);
-        const stats = await tryStat(packagePath);
-        if (stats?.isDirectory())
-            return packagePath;
-        const nextPath = dirname(path);
-        if (nextPath === path)
-            break;
-        path = nextPath;
-    }
-    handleModuleNotFound(specifier, referencingModuleURL);
-}
-
 function getCallerURL()
 {
     const stackTrace = captureStackTrace(import0, 1);
@@ -425,13 +365,17 @@ export default async function import0(specifier)
 
 function initializeImportMeta(meta, module)
 {
-    meta.url = module.identifier;
+    const url = module.identifier;
+    meta.url = url;
+    meta.resolve = createImportMetaResolve(url);
 }
 
 function noop()
 { }
 
-const readTextFile = path => readFile(path, 'utf-8');
+let readTextFile = path => readFile(path, 'utf-8');
+
+let resolveModuleURL = import.meta.resolve;
 
 function throwImportError(code, messageFormat, specifier, referencingModuleURL, constructor)
 {
@@ -450,6 +394,14 @@ function throwNodeError
     error.code = code;
     error.stack = stackTrace.replace(/^Error\n/, `${constructor.name} [${code}]: ${message}\n`);
     throw error;
+}
+
+function throwPackageConfigError(packagePath, specifier, referencingModuleURL)
+{
+    const packageJSONPath = join(packagePath, 'package.json');
+    const messageFormat =
+    `Invalid package configuration file "${packageJSONPath}" found while resolving %s`;
+    throwImportError('ERR_INVALID_PACKAGE_CONFIG', messageFormat, specifier, referencingModuleURL);
 }
 
 async function tryStat(path)
@@ -481,3 +433,17 @@ function wrapModuleConstructor(constructor, ...args)
 }
 
 await init();
+
+export function setReadTextFile(newReadTextFile)
+{
+    const oldReadTextFile = readTextFile;
+    readTextFile = newReadTextFile;
+    return oldReadTextFile;
+}
+
+export function setResolveModuleURL(newResolveModuleURL)
+{
+    const oldResolveModuleURL = resolveModuleURL;
+    resolveModuleURL = newResolveModuleURL;
+    return oldResolveModuleURL;
+}

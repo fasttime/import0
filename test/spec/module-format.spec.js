@@ -1,6 +1,7 @@
 /* eslint-env ebdd/ebdd */
 
-import assert from 'assert/strict';
+import assert       from 'assert/strict';
+import { extname }  from 'path';
 
 function makeExpectedError(code, specifier, constructor = Error)
 {
@@ -85,7 +86,7 @@ describe
             async () =>
             {
                 const { default: actual } =
-                await import0('../fixtures/esm/dir-package-json/module.js');
+                await import0('../fixtures/dir-package-json-dir/module.js');
                 assert.equal(actual, 'ES module');
             },
         );
@@ -96,8 +97,36 @@ describe
             async () =>
             {
                 const { default: actual } =
-                await import0('../fixtures/esm/self-link-package-json/module.js');
+                await import0('../fixtures/self-link-package-json-dir/module.js');
                 assert.equal(actual, 'ES module');
+            },
+        );
+
+        it
+        (
+            'file with extension ".js" when no "package.json" exists',
+            async () =>
+            {
+                const { setReadTextFile } = await import('import0');
+                const readTextFile =
+                path =>
+                {
+                    if (extname(path) !== '.json')
+                    {
+                        const promise = originalReadTextFile(path);
+                        return promise;
+                    }
+                };
+                const originalReadTextFile = setReadTextFile(readTextFile);
+                try
+                {
+                    const { default: actual } = await import0('../fixtures/cjs-module.js');
+                    assert.equal(actual, 'CommonJS module');
+                }
+                finally
+                {
+                    setReadTextFile(originalReadTextFile);
+                }
             },
         );
 
@@ -287,12 +316,15 @@ describe
             },
         );
 
-        // Node 16 is inconsistent in forbidding encoded backslashes
+        // Node 16 treats an empty string as a valid specifier and is inconsistent in forbidding
+        // encoded backslashes.
         it.per
         (
             [
                 { specifier: '', description: '""' },
                 { specifier: '@#$%', description: 'starting with "@"' },
+                { specifier: 'foo\\bar', description: 'containing a "\\" in the package name' },
+                { specifier: 'foo%bar', description: 'containing a "%" in the package name' },
                 { specifier: 'file:%2f', description: 'containing an encoded "/"' },
                 { specifier: 'file:%5C', description: 'containing an encoded "\\"' },
             ],

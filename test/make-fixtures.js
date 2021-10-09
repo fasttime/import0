@@ -13,22 +13,6 @@ function SymLink(target)
 
 const FIXTURES =
 {
-    'any-package-importer-with-dot-subpath.mjs':
-    `
-    import 'any-package/.';
-    `,
-    'any-package-importer-with-empty-subpath.mjs':
-    `
-    import 'any-package/';
-    `,
-    'any-package-importer-with-valid-subpath.mjs':
-    `
-    import 'any-package/any-module.mjs';
-    `,
-    'any-package-importer-without-subpath.mjs':
-    `
-    import 'any-package';
-    `,
     'any.js':
     `
     `,
@@ -69,6 +53,10 @@ const FIXTURES =
     `
     module.exports = 'CommonJS module';
     `,
+    'cjs-module.js':
+    `
+    module.exports = 'CommonJS module';
+    `,
     'cjs-no-exports-module.cjs':
     `
     `,
@@ -82,6 +70,14 @@ const FIXTURES =
     exports.__dirname   = __dirname;
     `,
     'dir-any.js': { },
+    'dir-package-json-dir':
+    {
+        'module.js':
+        `
+        export default 'ES module';
+        `,
+        'package.json': { },
+    },
     'es-module.mjs':
     `
     export default 'ES module';
@@ -93,14 +89,6 @@ const FIXTURES =
     `,
     'esm':
     {
-        'dir-package-json':
-        {
-            'module.js':
-            `
-            export default 'ES module';
-            `,
-            'package.json': { },
-        },
         'module.js':
         `
         export default 'ES module';
@@ -111,14 +99,6 @@ const FIXTURES =
             "type": "module"
         }
         `,
-        'self-link-package-json':
-        {
-            'module.js':
-            `
-            export default 'ES module';
-            `,
-            'package.json': SymLink('package.json'),
-        },
     },
     'invalid-package-json-dir':
     {
@@ -130,26 +110,15 @@ const FIXTURES =
         ?
         `,
     },
-    'missing-package-importer.mjs':
+    'module-importer.mjs':
     `
-    import 'missing-package';
+    export default specifier => import(specifier);
     `,
-    'module-importer':
-    {
-        'builtin.mjs':
-        `
-        export default await Promise.all([import('fs'), import('node:fs')]);
-        `,
-        'cjs.mjs':
-        `
-        export default
-        await Promise.all([import('../cjs/module.js'), import('./../cjs/module.js')]);
-        `,
-        'esm.mjs':
-        `
-        export default await Promise.all([import('../esm/module.js'), import('../esm/module.js')]);
-        `,
-    },
+    'multi-module-importer.mjs':
+    `
+    export default
+    (...specifiers) => Promise.allSettled(specifiers.map(specifier => import(specifier)));
+    `,
     'node_modules':
     {
         'any-package':
@@ -213,14 +182,14 @@ const FIXTURES =
         null
         `,
     },
-    'package-with-main-importer.mjs':
-    `
-    import 'package-with-main';
-    `,
-    'package-with-missing-main-importer.mjs':
-    `
-    import 'package-with-missing-main';
-    `,
+    'self-link-package-json-dir':
+    {
+        'module.js':
+        `
+        export default 'ES module';
+        `,
+        'package.json': SymLink('package.json'),
+    },
     'self-link.js': SymLink('self-link.js'),
 };
 
