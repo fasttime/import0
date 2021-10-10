@@ -244,6 +244,8 @@ function createImportModuleDynamically()
                             CREATE_FUNCTION_PARAMS,
                             { filename: modulePath, importModuleDynamically },
                         );
+                        compiledWrapper.context     = context;
+                        compiledWrapper.identifier  = identifier;
                         const { exports: exportNames } = parse(source);
                         module =
                         createSyntheticCJSModule

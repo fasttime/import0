@@ -32,9 +32,9 @@ describe
             '#.name module',
             async ({ specifier1, specifier2 }) =>
             {
-                const { default: importer } = await import0(MULTI_MODULE_IMPORTER_URL);
+                const { default: import_ } = await import0(MULTI_MODULE_IMPORTER_URL);
                 const [{ value: namespace1 }, { value: namespace2 }] =
-                await importer(specifier1, specifier2);
+                await import_(specifier1, specifier2);
                 assert(isModuleNamespaceObject(namespace1));
                 assert.equal(namespace1, namespace2);
             },
@@ -47,9 +47,9 @@ describe
             {
                 const specifier1 = './any.js#1';
                 const specifier2 = './any.js#2';
-                const { default: importer } = await import0(MULTI_MODULE_IMPORTER_URL);
+                const { default: import_ } = await import0(MULTI_MODULE_IMPORTER_URL);
                 const [{ value: namespace1 }, { value: namespace2 }] =
-                await importer(specifier1, specifier2);
+                await import_(specifier1, specifier2);
                 assert.notEqual(namespace1, namespace2);
             },
         );
@@ -61,9 +61,9 @@ describe
             {
                 const specifier1 = './invalid-package-json-dir/any.js#1';
                 const specifier2 = './invalid-package-json-dir/any.js#2';
-                const { default: importer } = await import0(MULTI_MODULE_IMPORTER_URL);
+                const { default: import_ } = await import0(MULTI_MODULE_IMPORTER_URL);
                 const [{ reason: error1 }, { reason: error2 }] =
-                await importer(specifier1, specifier2);
+                await import_(specifier1, specifier2);
                 assert.notEqual(error1, error2);
                 assert.strictEqual(error1.code, 'ERR_INVALID_PACKAGE_CONFIG');
                 assert.strictEqual(error2.code, 'ERR_INVALID_PACKAGE_CONFIG');

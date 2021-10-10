@@ -100,6 +100,51 @@ const FIXTURES =
         }
         `,
     },
+    'imports-exports':
+    {
+        'cjs-module.cjs':
+        `
+        module.exports = 'CommonJS module';
+        `,
+        'es-module.mjs':
+        `
+        export default 'ES module';
+        `,
+        'module-importer.cjs':
+        `
+        module.exports = specifier => import(specifier);
+        `,
+        'module-importer.mjs':
+        `
+        export default specifier => import(specifier);
+        `,
+        'module-requirer.cjs':
+        `
+        module.exports = require;
+        `,
+        'package.json':
+        `
+        {
+            "name": "imports-exports",
+            "exports":
+            {
+                ".":
+                {
+                    "import": "./es-module.mjs",
+                    "require": "./cjs-module.cjs"
+                }
+            },
+            "imports":
+            {
+                "#test":
+                {
+                    "import": "./es-module.mjs",
+                    "require": "./cjs-module.cjs"
+                }
+            }
+        }
+        `,
+    },
     'invalid-package-json-dir':
     {
         'any.js':

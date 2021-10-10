@@ -48,14 +48,14 @@ describe
             {
                 // eslint-disable-next-line require-await
                 const AsyncFunction = (async () => undefined).constructor;
-                const importer =
+                const import_ =
                 AsyncFunction
                 (
                     `const { default: import0 } = await import('${IMPORT_0_PATH}');\n` +
                     '\n' +
                     'await import0(\'../fixtures/any.js\');\n',
                 );
-                await assert.doesNotReject(importer);
+                await assert.doesNotReject(import_);
             },
         );
 
