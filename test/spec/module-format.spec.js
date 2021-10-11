@@ -3,6 +3,8 @@
 import assert       from 'assert/strict';
 import { extname }  from 'path';
 
+const IMPORT_0_PATH = 'import0';
+
 function makeExpectedError(code, specifier, constructor = Error)
 {
     const expectedError =
@@ -26,7 +28,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('import0'));
+                ({ default: import0 } = await import(IMPORT_0_PATH));
             },
         );
 
@@ -107,7 +109,7 @@ describe
             'file with extension ".js" when no "package.json" exists',
             async () =>
             {
-                const { setReadTextFile } = await import('import0');
+                const { setReadTextFile } = await import(IMPORT_0_PATH);
                 const readTextFile =
                 path =>
                 {
