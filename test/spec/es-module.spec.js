@@ -1,14 +1,46 @@
 /* eslint-env ebdd/ebdd */
 
+import { toDataURL }                from '../utils.js';
 import assert                       from 'assert/strict';
+import { readFile }                 from 'fs/promises';
 import { isModuleNamespaceObject }  from 'util/types';
 
-describe
+const FILE_URL = new URL('../fixtures/es-module.mjs', import.meta.url);
+
+describe.per
 (
-    'ES module',
-    () =>
+    [
+        {
+            description: 'file URL',
+            urlProvider: () => FILE_URL.toString(),
+            assertResolveRelativeURL:
+            async resolveRelativeURL =>
+            {
+                const actual = await resolveRelativeURL();
+                const expected = new URL('.', FILE_URL).toString();
+                assert.equal(actual, expected);
+            },
+        },
+        {
+            description: 'data URL',
+            urlProvider:
+            async () =>
+            {
+                const content = await readFile(FILE_URL, 'utf-8');
+                const url = toDataURL(content);
+                return url;
+            },
+            assertResolveRelativeURL:
+            resolveRelativeURL =>
+            assert.rejects(resolveRelativeURL, { code: 'ERR_INVALID_URL', constructor: TypeError }),
+        },
+    ],
+)
+(
+    'ES module specified by #.description',
+    async ({ assertResolveRelativeURL, urlProvider }) =>
     {
-        const SPECIFIER = '../fixtures/es-module.mjs';
+        const url = await urlProvider();
 
         let namespace;
 
@@ -17,7 +49,7 @@ describe
             async () =>
             {
                 const { default: import0 } = await import('import0');
-                namespace = await import0(SPECIFIER);
+                namespace = await import0(url);
             },
         );
 
@@ -44,16 +76,7 @@ describe
             },
         );
 
-        it
-        (
-            'import.meta.url',
-            () =>
-            {
-                const actual = namespace.meta.url;
-                const expected = new URL(SPECIFIER, import.meta.url).toString();
-                assert.equal(actual, expected);
-            },
-        );
+        it('import.meta.url', () => assert.equal(namespace.meta.url, url));
 
         it
         (
@@ -68,9 +91,11 @@ describe
                 assert.equal(resolve.length, 1);
                 assert.equal(resolve.name, 'resolve');
                 assert.equal(resolve.prototype, undefined);
-                const actual = await resolve('.');
-                const expected = new URL('.', new URL(SPECIFIER, import.meta.url)).toString();
-                assert.strictEqual(actual, expected);
+                {
+                    const actual = await resolve(url);
+                    assert.equal(actual, url);
+                }
+                await assertResolveRelativeURL(() => resolve('.'));
             },
         );
 

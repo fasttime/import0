@@ -1,7 +1,8 @@
 /* eslint-env ebdd/ebdd */
 
-import assert       from 'assert/strict';
-import { extname }  from 'path';
+import { toDataURL }    from '../utils.js';
+import assert           from 'assert/strict';
+import { extname }      from 'path';
 
 const IMPORT_0_PATH = 'import0';
 
@@ -129,6 +130,18 @@ describe
                 {
                     setReadTextFile(originalReadTextFile);
                 }
+            },
+        );
+
+        it
+        (
+            'data URL specifier',
+            async () =>
+            {
+                const expected = 'ES module';
+                const url = toDataURL(`export default ${JSON.stringify(expected)};\n`);
+                const { default: actual } = await import0(url);
+                assert.equal(actual, expected);
             },
         );
 

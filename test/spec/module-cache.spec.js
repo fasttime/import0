@@ -1,5 +1,6 @@
 /* eslint-env ebdd/ebdd */
 
+import { toDataURL }                from '../utils.js';
 import assert                       from 'assert/strict';
 import { isModuleNamespaceObject }  from 'util/types';
 
@@ -10,6 +11,8 @@ describe
     'Caching',
     () =>
     {
+        const DATA_URL = toDataURL('');
+
         let import0;
 
         before
@@ -23,14 +26,15 @@ describe
         it.per
         (
             [
-                { name: 'builtin',  specifier1: 'fs',               specifier2: 'node:fs' },
-                { name: 'CommonJS', specifier1: './cjs/module.js',  specifier2: './cjs/module.js' },
-                { name: 'ES',       specifier1: './esm/module.js',  specifier2: './esm/module.js' },
+                { name: 'builtin', specifier1: 'fs', specifier2: 'node:fs' },
+                { name: 'CommonJS', specifier1: './cjs/module.js' },
+                { name: 'file URL ES', specifier1: './esm/module.js' },
+                { name: 'data URL ES', specifier1: DATA_URL },
             ],
         )
         (
             '#.name module',
-            async ({ specifier1, specifier2 }) =>
+            async ({ specifier1, specifier2 = specifier1 }) =>
             {
                 const { default: import_ } = await import0(MULTI_MODULE_IMPORTER_URL);
                 const [{ value: namespace1 }, { value: namespace2 }] =
@@ -65,10 +69,10 @@ describe
                 const [{ reason: error1 }, { reason: error2 }] =
                 await import_(specifier1, specifier2);
                 assert.notEqual(error1, error2);
-                assert.strictEqual(error1.code, 'ERR_INVALID_PACKAGE_CONFIG');
-                assert.strictEqual(error2.code, 'ERR_INVALID_PACKAGE_CONFIG');
-                assert.strictEqual(error1.specifier, specifier1);
-                assert.strictEqual(error2.specifier, specifier2);
+                assert.equal(error1.code, 'ERR_INVALID_PACKAGE_CONFIG');
+                assert.equal(error2.code, 'ERR_INVALID_PACKAGE_CONFIG');
+                assert.equal(error1.specifier, specifier1);
+                assert.equal(error2.specifier, specifier2);
             },
         );
     },

@@ -146,7 +146,9 @@ function createImportModuleDynamically()
             let moduleSupplier;
             specifier = `${specifier}`;
             const protocol = specifier.match(/^[a-z][+\-.0-9a-z]*:/i)?.[0];
-            if (protocol === 'node:')
+            if (protocol === 'data:')
+                identifier = specifier;
+            else if (protocol === 'node:')
             {
                 if (!builtinModules.includes(specifier.slice(5)))
                 {
@@ -168,7 +170,12 @@ function createImportModuleDynamically()
                 async () =>
                 {
                     const namespace = await import(identifier);
-                    const module = createSyntheticBuiltinModule(namespace, { context, identifier });
+                    const module =
+                    createSyntheticESModule
+                    (
+                        namespace,
+                        { context, identifier, importModuleDynamically, initializeImportMeta },
+                    );
                     return module;
                 };
             }
@@ -217,8 +224,8 @@ function createImportModuleDynamically()
                         referencingModuleURL,
                     );
                 }
-                const modulePath = fileURLToPath(moduleURL);
                 identifier = moduleURL.toString();
+                const modulePath = fileURLToPath(moduleURL);
                 moduleSupplier =
                 async () =>
                 {
@@ -285,27 +292,6 @@ function createSourceTextModule(source, options)
     return module;
 }
 
-function createSyntheticBuiltinModule(namespace, options)
-{
-    const exportNames = _Object_keys(namespace);
-    const module =
-    wrapModuleConstructor
-    (
-        SyntheticModule,
-        exportNames,
-        function ()
-        {
-            for (const exportName of exportNames)
-            {
-                const exportValue = namespace[exportName];
-                this.setExport(exportName, exportValue);
-            }
-        },
-        options,
-    );
-    return module;
-}
-
 function createSyntheticCJSModule(modulePath, compiledWrapper, exportNames, options)
 {
     const allExportNames =
@@ -330,6 +316,27 @@ function createSyntheticCJSModule(modulePath, compiledWrapper, exportNames, opti
                 this.setExport(exportName, exportValue);
             }
             this.setExport('default', exports);
+        },
+        options,
+    );
+    return module;
+}
+
+function createSyntheticESModule(namespace, options)
+{
+    const exportNames = _Object_keys(namespace);
+    const module =
+    wrapModuleConstructor
+    (
+        SyntheticModule,
+        exportNames,
+        function ()
+        {
+            for (const exportName of exportNames)
+            {
+                const exportValue = namespace[exportName];
+                this.setExport(exportName, exportValue);
+            }
         },
         options,
     );

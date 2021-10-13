@@ -1,18 +1,15 @@
 /* eslint-env ebdd/ebdd */
 
-import assert                           from 'assert/strict';
-import { dirname, resolve }             from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
+import assert               from 'assert/strict';
+import { fileURLToPath }    from 'url';
 
 const MODULE_IMPORTER_URL       = '../fixtures/module-importer.mjs';
 const MODULE_IMPORTER_FULL_URL  = new URL(MODULE_IMPORTER_URL, import.meta.url).toString();
 
-function makeExpectedError(code, specifier, referencingModulePath)
+function makeExpectedError(code, specifier)
 {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const path = resolve(__dirname, referencingModulePath);
-    const referencingModuleURL = pathToFileURL(path).toString();
-    const expectedError = { code, constructor: Error, specifier, referencingModuleURL };
+    const expectedError =
+    { code, constructor: Error, specifier, referencingModuleURL: MODULE_IMPORTER_FULL_URL };
     return expectedError;
 }
 
@@ -140,7 +137,7 @@ describe
                 assert.rejects
                 (
                     () => import_(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier, MODULE_IMPORTER_URL),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
                 );
                 assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
@@ -157,7 +154,7 @@ describe
                 assert.rejects
                 (
                     () => import_(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier, MODULE_IMPORTER_URL),
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
                 );
                 assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
             },
