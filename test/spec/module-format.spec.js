@@ -8,13 +8,7 @@ const IMPORT_0_PATH = 'import0';
 
 function makeExpectedError(code, specifier, constructor = Error)
 {
-    const expectedError =
-    {
-        code,
-        constructor,
-        specifier,
-        referencingModuleURL: import.meta.url,
-    };
+    const expectedError = { code, constructor, specifier, referencingModuleURL: import.meta.url };
     return expectedError;
 }
 
@@ -203,10 +197,7 @@ describe
                 const specifier = '.';
                 await
                 assert.rejects
-                (
-                    () => import0('.'),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
-                );
+                (() => import0('.'), makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier));
             },
         );
 
@@ -264,10 +255,7 @@ describe
                 const specifier = '../fixtures/missing.js';
                 await
                 assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
-                );
+                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
             },
         );
 
@@ -279,10 +267,7 @@ describe
                 const specifier = '../fixtures/missing.png';
                 await
                 assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
-                );
+                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
             },
         );
 
@@ -294,10 +279,7 @@ describe
                 const specifier = '../fixtures/invalid-package-json-dir/missing.js';
                 await
                 assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_MODULE_NOT_FOUND', specifier),
-                );
+                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
             },
         );
 
@@ -316,19 +298,24 @@ describe
             },
         );
 
-        it
+        it.per
         (
-            'unsupported URL',
-            async () =>
-            {
-                const specifier = 'https://example.com';
-                await
-                assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_ESM_URL_SCHEME', specifier),
-                );
-            },
+            [
+                { description: 'HTTP', specifier: 'http://example.com' },
+                {
+                    description: 'blob',
+                    specifier: 'blob:nodedata:00000000-0000-0000-0000-000000000000',
+                },
+            ],
+        )
+        (
+            'unsupported # URL',
+            ({ specifier }) =>
+            assert.rejects
+            (
+                () => import0(specifier),
+                makeExpectedError('ERR_UNSUPPORTED_ESM_URL_SCHEME', specifier),
+            ),
         );
 
         // Node 16 treats an empty string as a valid specifier and is inconsistent in forbidding
@@ -359,10 +346,7 @@ describe
             'inaccessible file (POSIX)',
             () =>
             assert.rejects
-            (
-                () => import0('/dev/null/any.js'),
-                { code: 'ENOTDIR', constructor: Error },
-            ),
+            (() => import0('/dev/null/any.js'), { code: 'ENOTDIR', constructor: Error }),
         );
 
         it.when(process.platform === 'win32')
@@ -381,10 +365,7 @@ describe
             'self-targeting link',
             () =>
             assert.rejects
-            (
-                () => import0('../fixtures/self-link.js'),
-                { code: 'ELOOP', constructor: Error },
-            ),
+            (() => import0('../fixtures/self-link.js'), { code: 'ELOOP', constructor: Error }),
         );
     },
 );
