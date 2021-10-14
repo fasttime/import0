@@ -238,6 +238,23 @@ const FIXTURES =
     'self-link.js': SymLink('self-link.js'),
 };
 
+async function doSymlink(target, path)
+{
+    try
+    {
+        await symlink(target, path);
+    }
+    catch (error)
+    {
+        if (error.code === 'EPERM' && process.platform === 'win32')
+        {
+            warnAdminRequired = true;
+            return;
+        }
+        throw error;
+    }
+}
+
 async function makeObject(path, data)
 {
     const dataType = typeof data;
@@ -251,7 +268,7 @@ async function makeObject(path, data)
         if (data instanceof SymLink)
         {
             const { target } = data;
-            await symlink(target, path);
+            await doSymlink(target, path);
         }
         else
         {
@@ -286,9 +303,19 @@ function unindent(str)
     return content;
 }
 
+let warnAdminRequired = false;
 {
     const testFolder = dirname(fileURLToPath(import.meta.url));
     const path = join(testFolder, 'fixtures');
     await rm(path, { force: true, recursive: true });
     await makeObject(path, FIXTURES);
+    if (warnAdminRequired)
+    {
+        process.emitWarning
+        (
+            'Some symbolic links could not be created. You may try to rerun the command as an ' +
+            'admin.',
+            { code: 'SYMLINK_ADMIN_REQUIRED' },
+        );
+    }
 }
