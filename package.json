@@ -1,6 +1,6 @@
 {
   "name": "import0",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Virtualized runtime environment for Node.js",
   "license": "ISC",
   "author": "Francesco Trotta <ft@fasttime.org> (https://github.com/fasttime)",
