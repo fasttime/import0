@@ -48,7 +48,7 @@ describe.per
         (
             async () =>
             {
-                const { default: import0 } = await import('import0');
+                const { default: import0 } = await import('#import0');
                 namespace = await import0(url);
             },
         );

@@ -4,7 +4,7 @@ import { toDataURL }    from '../utils.js';
 import assert           from 'assert/strict';
 import { extname }      from 'path';
 
-const IMPORT_0_PATH = 'import0';
+const IMPORT_0_PATH = '#import0';
 
 function makeExpectedError(code, specifier, constructor = Error)
 {

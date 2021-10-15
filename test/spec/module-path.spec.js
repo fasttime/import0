@@ -32,7 +32,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0, setResolveModuleURL } = await import('import0'));
+                ({ default: import0, setResolveModuleURL } = await import('#import0'));
             },
         );
 

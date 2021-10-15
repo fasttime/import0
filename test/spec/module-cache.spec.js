@@ -19,7 +19,7 @@ describe
         (
             async () =>
             {
-                ({ default: import0 } = await import('import0'));
+                ({ default: import0 } = await import('#import0'));
             },
         );
 
