@@ -29,8 +29,6 @@
     "cjs-module-lexer": "1"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "latest",
-    "@babel/plugin-syntax-top-level-await": "latest",
     "@fasttime/lint": "latest",
     "c8": "latest",
     "ebdd": "latest",

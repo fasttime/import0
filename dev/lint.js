@@ -9,16 +9,9 @@ process.chdir(workspaceFolder);
 await lint
 (
     {
-        src: ['*.js', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
+        src: ['*.{js,ts}', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
         envs: 'node',
-        parser: '@babel/eslint-parser',
-        parserOptions:
-        {
-            babelOptions: { plugins: ['@babel/plugin-syntax-top-level-await'] },
-            ecmaVersion: 2021,
-            requireConfigFile: false,
-            sourceType: 'module',
-        },
+        parserOptions: { ecmaVersion: 2022, project: 'tsconfig.json', sourceType: 'module' },
         plugins: ['ebdd'],
     },
 );
