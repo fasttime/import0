@@ -29,10 +29,8 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
 {
     if (!/[/\\]$/.test(modulePath))
     {
-        const stats = await tryStat(modulePath);
-        if (!stats)
-            handleModuleNotFound(specifier, referencingModuleURL);
-        if (!stats.isDirectory())
+        const stats = await stat(modulePath);
+        if (!stats?.isDirectory())
             return;
     }
     throwImportError
@@ -181,55 +179,12 @@ function createImportModuleDynamically()
             }
             else
             {
-                let moduleURL;
-                if (protocol === 'file:' || /^[./]/.test(specifier))
-                {
-                    const match = specifier.match(/%(?:2f|5c)/i);
-                    if (match)
-                    {
-                        const messageFormat = `Invalid encoded character "${match}" in %s`;
-                        throwImportError
-                        (
-                            'ERR_INVALID_MODULE_SPECIFIER',
-                            messageFormat,
-                            specifier,
-                            referencingModuleURL,
-                        );
-                    }
-                    moduleURL = new URL(specifier, protocol ? undefined : referencingModuleURL);
-                }
-                else if (!protocol)
-                {
-                    const match =
-                    specifier.match(/^([^%@\\][^%/\\]*|@[^%/\\]+\/[^%/\\]+)(?:\/(.*))?$/s);
-                    if (!match)
-                    {
-                        throwImportError
-                        (
-                            'ERR_INVALID_MODULE_SPECIFIER',
-                            'Invalid specifier %s',
-                            specifier,
-                            referencingModuleURL,
-                        );
-                    }
-                    moduleURL = await resolveModuleURL(specifier, referencingModuleURL);
-                }
-                else
-                {
-                    throwImportError
-                    (
-                        'ERR_UNSUPPORTED_ESM_URL_SCHEME',
-                        `Unsupported URL protocol "${protocol}" in %s`,
-                        specifier,
-                        referencingModuleURL,
-                    );
-                }
-                identifier = moduleURL.toString();
-                const modulePath = fileURLToPath(moduleURL);
+                identifier = await resolveModuleURL(specifier, referencingModuleURL);
                 moduleSupplier =
                 async () =>
                 {
                     let module;
+                    const modulePath = fileURLToPath(identifier);
                     await checkModulePath(modulePath, specifier, referencingModuleURL);
                     const isESModuleFlag = await isESModule(modulePath);
                     const source = await readTextFile(modulePath);
@@ -357,12 +312,6 @@ function getCallerURL()
     return url;
 }
 
-function handleModuleNotFound(specifier, referencingModuleURL)
-{
-    throwImportError
-    ('ERR_MODULE_NOT_FOUND', 'Module %s not found', specifier, referencingModuleURL);
-}
-
 export default async function import0(specifier)
 {
     const url = getCallerURL();
@@ -411,20 +360,6 @@ function throwPackageConfigError(packagePath, specifier, referencingModuleURL)
     const messageFormat =
     `Invalid package configuration file "${packageJSONPath}" found while resolving %s`;
     throwImportError('ERR_INVALID_PACKAGE_CONFIG', messageFormat, specifier, referencingModuleURL);
-}
-
-async function tryStat(path)
-{
-    try
-    {
-        const stats = await stat(path);
-        return stats;
-    }
-    catch (error)
-    {
-        if (error.code !== 'ENOENT')
-            throw error;
-    }
 }
 
 function wrapModuleConstructor(constructor, ...args)

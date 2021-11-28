@@ -132,15 +132,17 @@ const FIXTURES =
                 {
                     "import": "./es-module.mjs",
                     "require": "./cjs-module.cjs"
-                }
+                },
+                "./not-found": "./not-found"
             },
             "imports":
             {
-                "#test":
+                "#main":
                 {
                     "import": "./es-module.mjs",
                     "require": "./cjs-module.cjs"
-                }
+                },
+                "#not-found": "./not-found"
             }
         }
         `,

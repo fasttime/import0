@@ -231,7 +231,7 @@ describe
             },
         );
 
-        // Node 16 fails with a TypeError instead.
+        // Node.js fails with a TypeError instead.
         it
         (
             'file with extension ".js" when the next "package.json" file is null',
@@ -247,54 +247,41 @@ describe
             },
         );
 
-        it
+        it.per
         (
-            'missing path with supported extension',
-            async () =>
-            {
-                const specifier = '../fixtures/missing.js';
-                await
-                assert.rejects
-                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
-            },
-        );
-
-        it
+            [
+                {
+                    description: 'supported extension',
+                    specifier: '../fixtures/missing.js',
+                },
+                {
+                    description: 'unsupported extension',
+                    specifier: '../fixtures/missing.png',
+                },
+                {
+                    description: 'extension ".js" when the next "package.json" file is invalid',
+                    specifier: '../fixtures/invalid-package-json-dir/missing.js',
+                },
+            ],
+        )
         (
-            'missing path with unsupported extension',
-            async () =>
-            {
-                const specifier = '../fixtures/missing.png';
-                await
-                assert.rejects
-                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
-            },
-        );
-
-        it
-        (
-            'missing path with extension ".js" when the next "package.json" file is invalid',
-            async () =>
-            {
-                const specifier = '../fixtures/invalid-package-json-dir/missing.js';
-                await
-                assert.rejects
-                (() => import0(specifier), makeExpectedError('ERR_MODULE_NOT_FOUND', specifier));
-            },
+            'missing path with #.description',
+            ({ specifier }) =>
+            assert.rejects
+            (() => import0(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
         );
 
         it.per(['/', '\\'])
         (
-            'path with trailing #',
+            'path with trailing "#"',
             async separator =>
             {
                 const specifier = `../fixtures/missing-dir${separator}`;
-                await
-                assert.rejects
-                (
-                    () => import0(specifier),
-                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
-                );
+                const expectedError =
+                process.platform === 'win32' ?
+                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error } :
+                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier);
+                await assert.rejects(() => import0(specifier), expectedError);
             },
         );
 
@@ -309,21 +296,26 @@ describe
             ],
         )
         (
-            'unsupported # URL',
+            'unsupported #.description URL',
             ({ specifier }) =>
             assert.rejects
             (
                 () => import0(specifier),
-                makeExpectedError('ERR_UNSUPPORTED_ESM_URL_SCHEME', specifier),
+                { code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME', constructor: Error },
             ),
         );
 
-        // Node 16 treats an empty string as a valid specifier and is inconsistent in forbidding
-        // encoded backslashes.
+        // Node 17 treats an empty string as a valid specifier.
+        it
+        (
+            'empty path',
+            () =>
+            assert.rejects(() => import0(''), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
+        );
+
         it.per
         (
             [
-                { specifier: '', description: '""' },
                 { specifier: '@#$%', description: 'starting with "@"' },
                 { specifier: 'foo\\bar', description: 'containing a "\\" in the package name' },
                 { specifier: 'foo%bar', description: 'containing a "%" in the package name' },
@@ -337,7 +329,7 @@ describe
             assert.rejects
             (
                 () => import0(specifier),
-                makeExpectedError('ERR_INVALID_MODULE_SPECIFIER', specifier),
+                { code: 'ERR_INVALID_MODULE_SPECIFIER', constructor: TypeError },
             ),
         );
 
