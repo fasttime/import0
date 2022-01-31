@@ -65,16 +65,7 @@ function createImportModuleDynamically()
         { }
         if (text != null)
         {
-            let json;
-            try
-            {
-                json = _JSON_parse(text);
-            }
-            catch
-            { }
-            if (json == null)
-                return null;
-            const { type } = json;
+            const { type } = _JSON_parse(text);
             const isESModuleFlag = type === 'module';
             return isESModuleFlag;
         }
@@ -88,8 +79,6 @@ function createImportModuleDynamically()
             isESModuleFlagCache[packagePath] ??
             (isESModuleFlagCache[packagePath] = getIsESModuleFlagSupplier(packagePath));
             const isESModuleFlag = await isESModuleFlagPromise;
-            if (isESModuleFlag === null)
-                throwPackageConfigError(packagePath, specifier, referencingModuleURL);
             return isESModuleFlag;
         }
 
@@ -352,14 +341,6 @@ function throwNodeError
     error.code = code;
     error.stack = stackTrace.replace(/^Error\n/, `${constructor.name} [${code}]: ${message}\n`);
     throw error;
-}
-
-function throwPackageConfigError(packagePath, specifier, referencingModuleURL)
-{
-    const packageJSONPath = join(packagePath, 'package.json');
-    const messageFormat =
-    `Invalid package configuration file "${packageJSONPath}" found while resolving %s`;
-    throwImportError('ERR_INVALID_PACKAGE_CONFIG', messageFormat, specifier, referencingModuleURL);
 }
 
 function wrapModuleConstructor(constructor, ...args)

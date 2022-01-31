@@ -226,12 +226,11 @@ describe
                 assert.rejects
                 (
                     () => import0(specifier),
-                    makeExpectedError('ERR_INVALID_PACKAGE_CONFIG', specifier),
+                    { code: 'ERR_INVALID_PACKAGE_CONFIG', constructor: Error },
                 );
             },
         );
 
-        // Node.js fails with a TypeError instead.
         it
         (
             'file with extension ".js" when the next "package.json" file is null',
@@ -242,7 +241,11 @@ describe
                 assert.rejects
                 (
                     () => import0(specifier),
-                    makeExpectedError('ERR_INVALID_PACKAGE_CONFIG', specifier),
+                    {
+                        constructor: TypeError,
+                        message:
+                        'Cannot destructure property \'imports\' of \'packageJSON\' as it is null.',
+                    },
                 );
             },
         );

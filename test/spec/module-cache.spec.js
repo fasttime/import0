@@ -71,8 +71,6 @@ describe
                 assert.notEqual(error1, error2);
                 assert.equal(error1.code, 'ERR_INVALID_PACKAGE_CONFIG');
                 assert.equal(error2.code, 'ERR_INVALID_PACKAGE_CONFIG');
-                assert.equal(error1.specifier, specifier1);
-                assert.equal(error2.specifier, specifier2);
             },
         );
     },
