@@ -289,9 +289,21 @@ function createSyntheticESModule(namespace, options)
 
 function getCallerURL()
 {
-    const stackTrace = captureStackTrace(import0, 1);
-    const match = stackTrace.match(/^Error\n    at (?:.*\((.*):\d+:\d+\)|(.*):\d+:\d+)$/);
-    const fileName = match?.[1] ?? match?.[2];
+    let fileName;
+    const { prepareStackTrace } = Error;
+    Error.prepareStackTrace =
+    (_, [callSite]) =>
+    {
+        fileName = callSite.getFileName();
+        if (fileName == null)
+        {
+            const evalOrigin = callSite.getEvalOrigin();
+            const match = evalOrigin?.match(/\((.*):\d+:\d+\)$/s);
+            fileName = match?.[1];
+        }
+    };
+    captureStackTrace(import0, 1);
+    Error.prepareStackTrace = prepareStackTrace;
     if (fileName == null)
     {
         throwNodeError

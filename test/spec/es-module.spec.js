@@ -86,7 +86,7 @@ describe.per
                 const { resolve } = namespace.meta;
                 assert.equal(typeof resolve, 'function');
                 // eslint-disable-next-line require-await
-                const AsyncFunction = (async () => null).constructor;
+                const AsyncFunction = (async () => undefined).constructor;
                 assert.equal(Object.getPrototypeOf(resolve), AsyncFunction.prototype);
                 assert.equal(resolve.length, 1);
                 assert.equal(resolve.name, 'resolve');

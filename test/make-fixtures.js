@@ -11,8 +11,40 @@ function SymLink(target)
     return thisValue;
 }
 
+function UnixOnly(...args)
+{
+    const thisValue = new.target ? this : Object.create(UnixOnly.prototype);
+    thisValue.content = unindent(String.raw(...args));
+    return thisValue;
+}
+
 const FIXTURES =
 {
+    '(\n).cjs':
+    UnixOnly
+    `
+    const import0Promise = import('import0');
+
+    exports.importInEval =
+    () => eval(import0Promise.then(({ default: import0 }) => import0('./any.js')));
+
+    const AsyncFunction = (async () => undefined).constructor;
+
+    exports.importInFunction =
+    () =>
+    AsyncFunction('import0Promise', 'return (await import0Promise).default(\'./any.js\')')
+    (import0Promise);
+    `,
+    '(\n).mjs':
+    UnixOnly
+    `
+    import import0 from 'import0';
+
+    export const importInEval = () => eval('import0(\'./any.js\')');
+
+    export const importInFunction =
+    () => Function('import0', 'return import0(\'./any.js\');')(import0);
+    `,
     'any.js':
     `
     `,
@@ -271,6 +303,14 @@ async function makeObject(path, data)
         {
             const { target } = data;
             await doSymlink(target, path);
+        }
+        else if (data instanceof UnixOnly)
+        {
+            if (process.platform !== 'win32')
+            {
+                const { content } = data;
+                await writeFile(path, content);
+            }
         }
         else
         {

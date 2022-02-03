@@ -1,6 +1,7 @@
 /* eslint-env ebdd/ebdd */
 
 import assert               from 'assert/strict';
+import { existsSync }       from 'fs';
 import { createRequire }    from 'module';
 
 const IMPORT_0_PATH = '#import0';
@@ -43,7 +44,7 @@ describe
 
         it
         (
-            'from evaluated code',
+            'from dynamic code',
             async () =>
             {
                 // eslint-disable-next-line require-await
@@ -70,6 +71,32 @@ describe
                     () => ['../fixtures/any.js', undefined].reduce(import0),
                     { code: 'ERR_UNSUPPORTED_CALL_SITE', constructor: Error },
                 );
+            },
+        );
+
+        it
+        .per
+        (
+            [
+                { moduleType: 'CommonJS module',    url: '../fixtures/(%0A).cjs'    },
+                { moduleType: 'ES module',          url: '../fixtures/(%0A).mjs'    },
+            ],
+            param => when(existsSync(new URL(param.url, import.meta.url)), param),
+        )
+        .per
+        (
+            [
+                { codeType: 'eval code',        fnName: 'importInEval'      },
+                { codeType: 'Function code',    fnName: 'importInFunction'  },
+            ],
+        )
+        (
+            'from #2.codeType in a #1.moduleType with special characters in its name',
+            async ({ url }, { fnName }) =>
+            {
+                const namespace = await import(url);
+                const fn = namespace[fnName];
+                await assert.doesNotReject(fn);
             },
         );
     },
