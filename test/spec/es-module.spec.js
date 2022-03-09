@@ -32,7 +32,8 @@ describe.per
             },
             assertResolveRelativeURL:
             resolveRelativeURL =>
-            assert.rejects(resolveRelativeURL, { code: 'ERR_INVALID_URL', constructor: TypeError }),
+            assert.rejects
+            (resolveRelativeURL, { code: 'ERR_INVALID_URL_SCHEME', constructor: TypeError }),
         },
     ],
 )
