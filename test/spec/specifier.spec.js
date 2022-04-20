@@ -1,41 +1,32 @@
-/* eslint-env ebdd/ebdd */
+import assert   from 'node:assert/strict';
+import test     from 'node:test';
 
-import assert from 'assert/strict';
-
-describe
+await test
 (
     'Specifier',
-    () =>
+    async ctx =>
     {
-        let import0;
+        const { default: import0 } = await import('#import0');
 
-        before
-        (
-            async () =>
-            {
-                ({ default: import0 } = await import('#import0'));
-            },
-        );
+        for (const specifier of ['$*!?', 123.456, { }, undefined])
+        {
+            const type = typeof specifier;
+            await ctx.test
+            (
+                `of type ${type}`,
+                async () =>
+                {
+                    await
+                    assert.rejects
+                    (
+                        () => import0(specifier),
+                        { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                    );
+                },
+            );
+        }
 
-        it.per
-        (
-            ['$*!?', 123.456, { }, undefined],
-            specifier => ({ specifier, type: typeof specifier }),
-        )
-        (
-            'of type #.type',
-            async ({ specifier }) =>
-            {
-                await
-                assert.rejects
-                (
-                    () => import0(specifier),
-                    { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
-                );
-            },
-        );
-
-        it
+        await ctx.test
         (
             'of type symbol',
             async () =>

@@ -23,20 +23,17 @@
     "coverage": "c8 --reporter=html --reporter=text-summary npm test",
     "lint": "node ./dev/lint.js",
     "make-fixtures": "node ./test/make-fixtures.js",
-    "test": "node --experimental-import-meta-resolve --experimental-vm-modules node_modules/mocha/bin/mocha --check-leaks --ui=ebdd test/**/*.spec.js"
+    "test": "node --experimental-import-meta-resolve --experimental-vm-modules ./test/test.js"
   },
   "dependencies": {
     "cjs-module-lexer": "1"
   },
   "devDependencies": {
     "@fasttime/lint": "latest",
-    "c8": "latest",
-    "ebdd": "latest",
-    "eslint-plugin-ebdd": "latest",
-    "mocha": "latest"
+    "c8": "latest"
   },
   "engines": {
-    "node": ">=17.6"
+    "node": ">=18"
   },
   "exports": {
     ".": {

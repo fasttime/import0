@@ -1,14 +1,14 @@
-/* eslint-env ebdd/ebdd */
-
 import { toDataURL }                from '../utils.js';
-import assert                       from 'assert/strict';
-import { readFile }                 from 'fs/promises';
-import { isModuleNamespaceObject }  from 'util/types';
+import assert                       from 'node:assert/strict';
+import { readFile }                 from 'node:fs/promises';
+import test                         from 'node:test';
+import { isModuleNamespaceObject }  from 'node:util/types';
 
 const FILE_URL = new URL('../fixtures/es-module.mjs', import.meta.url);
 
-describe.per
+for
 (
+    const { assertResolveRelativeURL, description, urlProvider } of
     [
         {
             description: 'file URL',
@@ -35,71 +35,75 @@ describe.per
             assert.rejects
             (resolveRelativeURL, { code: 'ERR_INVALID_URL_SCHEME', constructor: TypeError }),
         },
-    ],
+    ]
 )
-(
-    'ES module specified by #.description',
-    async ({ assertResolveRelativeURL, urlProvider }) =>
-    {
-        const url = await urlProvider();
+{
+    await test
+    (
+        `ES module specified by ${description}`,
+        async ctx =>
+        {
+            const url = await urlProvider();
+            const { default: import0 } = await import('#import0');
+            const namespace = await import0(url);
 
-        let namespace;
+            await ctx.test('module namespace', () => assert(isModuleNamespaceObject(namespace)));
 
-        before
-        (
-            async () =>
-            {
-                const { default: import0 } = await import('#import0');
-                namespace = await import0(url);
-            },
-        );
-
-        it('module namespace', () => assert(isModuleNamespaceObject(namespace)));
-
-        it
-        (
-            'import.meta',
-            () =>
-            {
-                const { meta } = namespace;
-                assert.equal(Object.getPrototypeOf(meta), null);
-                const { resolve, url } = meta;
-                assert.deepEqual
-                (
-                    Object.getOwnPropertyDescriptors(meta),
-                    {
-                        resolve:
-                        { value: resolve, writable: true, enumerable: true, configurable: true },
-                        url:
-                        { value: url, writable: true, enumerable: true, configurable: true },
-                    },
-                );
-            },
-        );
-
-        it('import.meta.url', () => assert.equal(namespace.meta.url, url));
-
-        it
-        (
-            'import.meta.resolve',
-            async () =>
-            {
-                const { resolve } = namespace.meta;
-                assert.equal(typeof resolve, 'function');
-                // eslint-disable-next-line require-await
-                const AsyncFunction = (async () => undefined).constructor;
-                assert.equal(Object.getPrototypeOf(resolve), AsyncFunction.prototype);
-                assert.equal(resolve.length, 1);
-                assert.equal(resolve.name, 'resolve');
-                assert.equal(resolve.prototype, undefined);
+            await ctx.test
+            (
+                'import.meta',
+                () =>
                 {
-                    const actual = await resolve(url);
-                    assert.equal(actual, url);
-                }
-                await assertResolveRelativeURL(() => resolve('.'));
-            },
-        );
+                    const { meta } = namespace;
+                    assert.equal(Object.getPrototypeOf(meta), null);
+                    const { resolve, url } = meta;
+                    assert.deepEqual
+                    (
+                        Object.getOwnPropertyDescriptors(meta),
+                        {
+                            resolve:
+                            {
+                                value: resolve,
+                                writable: true,
+                                enumerable: true,
+                                configurable: true,
+                            },
+                            url:
+                            {
+                                value: url,
+                                writable: true,
+                                enumerable: true,
+                                configurable: true,
+                            },
+                        },
+                    );
+                },
+            );
 
-        it('this', () => assert.equal(namespace.thisValue, undefined));
-    },
-);
+            await ctx.test('import.meta.url', () => assert.equal(namespace.meta.url, url));
+
+            await ctx.test
+            (
+                'import.meta.resolve',
+                async () =>
+                {
+                    const { resolve } = namespace.meta;
+                    assert.equal(typeof resolve, 'function');
+                    // eslint-disable-next-line require-await
+                    const AsyncFunction = (async () => undefined).constructor;
+                    assert.equal(Object.getPrototypeOf(resolve), AsyncFunction.prototype);
+                    assert.equal(resolve.length, 1);
+                    assert.equal(resolve.name, 'resolve');
+                    assert.equal(resolve.prototype, undefined);
+                    {
+                        const actual = await resolve(url);
+                        assert.equal(actual, url);
+                    }
+                    await assertResolveRelativeURL(() => resolve('.'));
+                },
+            );
+
+            await ctx.test('this', () => assert.equal(namespace.thisValue, undefined));
+        },
+    );
+}

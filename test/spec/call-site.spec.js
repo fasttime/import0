@@ -1,17 +1,16 @@
-/* eslint-env ebdd/ebdd */
-
-import assert               from 'assert/strict';
-import { existsSync }       from 'fs';
-import { createRequire }    from 'module';
+import assert               from 'node:assert/strict';
+import { existsSync }       from 'node:fs';
+import { createRequire }    from 'node:module';
+import test                 from 'node:test';
 
 const IMPORT_0_PATH = '#import0';
 
-describe
+await test
 (
     'Call site resolution',
-    () =>
+    async ctx =>
     {
-        it
+        await ctx.test
         (
             'from a ES module',
             async () =>
@@ -21,7 +20,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'from a CommonJS module',
             async () =>
@@ -32,7 +31,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'from an arrow function',
             async () =>
@@ -42,7 +41,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'from dynamic code',
             async () =>
@@ -60,7 +59,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'from native code',
             async () =>
@@ -74,30 +73,37 @@ describe
             },
         );
 
-        it
-        .per
+        for
         (
+            const { moduleType, url } of
             [
                 { moduleType: 'CommonJS module',    url: '../fixtures/(%0A).cjs'    },
                 { moduleType: 'ES module',          url: '../fixtures/(%0A).mjs'    },
-            ],
-            param => when(existsSync(new URL(param.url, import.meta.url)), param),
+            ]
         )
-        .per
-        (
-            [
-                { codeType: 'eval code',        fnName: 'importInEval'      },
-                { codeType: 'Function code',    fnName: 'importInFunction'  },
-            ],
-        )
-        (
-            'from #2.codeType in a #1.moduleType with special characters in its name',
-            async ({ url }, { fnName }) =>
+        {
+            const skip = !existsSync(new URL(url, import.meta.url));
+            for
+            (
+                const { codeType, fnName } of
+                [
+                    { codeType: 'eval code',        fnName: 'importInEval'      },
+                    { codeType: 'Function code',    fnName: 'importInFunction'  },
+                ]
+            )
             {
-                const namespace = await import(url);
-                const fn = namespace[fnName];
-                await assert.doesNotReject(fn);
-            },
-        );
+                await ctx.test
+                (
+                    `from ${codeType} in a ${moduleType} with special characters in its name`,
+                    { skip },
+                    async () =>
+                    {
+                        const namespace = await import(url);
+                        const fn = namespace[fnName];
+                        await assert.doesNotReject(fn);
+                    },
+                );
+            }
+        }
     },
 );

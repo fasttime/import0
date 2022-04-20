@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { mkdir, rm, symlink, writeFile }    from 'fs/promises';
-import { dirname, join }                    from 'path';
-import { fileURLToPath }                    from 'url';
+import { mkdir, rm, symlink, writeFile }    from 'node:fs/promises';
+import { dirname, join }                    from 'node:path';
+import { fileURLToPath }                    from 'node:url';
 
 function SymLink(target)
 {

@@ -1,8 +1,7 @@
-/* eslint-env ebdd/ebdd */
-
 import { toDataURL }    from '../utils.js';
-import assert           from 'assert/strict';
-import { extname }      from 'path';
+import assert           from 'node:assert/strict';
+import { extname }      from 'node:path';
+import test             from 'node:test';
 
 const IMPORT_0_PATH = '#import0';
 
@@ -12,22 +11,14 @@ function makeExpectedError(code, specifier, constructor = Error)
     return expectedError;
 }
 
-describe
+await test
 (
     'Module format detection',
-    () =>
+    async ctx =>
     {
-        let import0;
+        const { default: import0 } = await import(IMPORT_0_PATH);
 
-        before
-        (
-            async () =>
-            {
-                ({ default: import0 } = await import(IMPORT_0_PATH));
-            },
-        );
-
-        it
+        await ctx.test
         (
             'file with extension ".cjs"',
             async () =>
@@ -37,7 +28,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".mjs"',
             async () =>
@@ -47,7 +38,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when the next "package.json" file has type commonjs',
             async () =>
@@ -57,7 +48,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when the next "package.json" file is inside "node_modules"',
             async () =>
@@ -67,7 +58,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when the next "package.json" file has type module',
             async () =>
@@ -77,7 +68,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" ignoring a "package.json" directory',
             async () =>
@@ -88,7 +79,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" ignoring a self-targeting "package.json" link',
             async () =>
@@ -99,7 +90,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when no "package.json" exists',
             async () =>
@@ -127,7 +118,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'data URL specifier',
             async () =>
@@ -139,7 +130,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'unprefixed builtin specifier',
             async () =>
@@ -149,7 +140,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'builtin specifier prefixed with "node:"',
             async () =>
@@ -159,7 +150,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'unknown specifier prefixed with "node:"',
             async () =>
@@ -174,7 +165,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'directory with extension ".js"',
             async () =>
@@ -189,7 +180,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'directory without extension',
             async () =>
@@ -201,7 +192,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with an unsupported extension',
             async () =>
@@ -216,7 +207,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when the next "package.json" file is invalid',
             async () =>
@@ -231,7 +222,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'file with extension ".js" when the next "package.json" file is null',
             async () =>
@@ -250,8 +241,9 @@ describe
             },
         );
 
-        it.per
+        for
         (
+            const { description, specifier } of
             [
                 {
                     description: 'supported extension',
@@ -265,88 +257,104 @@ describe
                     description: 'extension ".js" when the next "package.json" file is invalid',
                     specifier: '../fixtures/invalid-package-json-dir/missing.js',
                 },
-            ],
+            ]
         )
-        (
-            'missing path with #.description',
-            ({ specifier }) =>
-            assert.rejects
-            (() => import0(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
-        );
+        {
+            await ctx.test
+            (
+                `missing path with ${description}`,
+                () =>
+                assert.rejects
+                (() => import0(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
+            );
+        }
 
-        it.per(['/', '\\'])
-        (
-            'path with trailing "#"',
-            async separator =>
-            {
-                const specifier = `../fixtures/missing-dir${separator}`;
-                const expectedError =
-                process.platform === 'win32' ?
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error } :
-                makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier);
-                await assert.rejects(() => import0(specifier), expectedError);
-            },
-        );
+        for (const separator of ['/', '\\'])
+        {
+            await ctx.test
+            (
+                `path with trailing "${separator}"`,
+                async () =>
+                {
+                    const specifier = `../fixtures/missing-dir${separator}`;
+                    const expectedError =
+                    process.platform === 'win32' ?
+                    { code: 'ERR_MODULE_NOT_FOUND', constructor: Error } :
+                    makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier);
+                    await assert.rejects(() => import0(specifier), expectedError);
+                },
+            );
+        }
 
-        it.per
+        for
         (
+            const { description, specifier } of
             [
                 { description: 'HTTP', specifier: 'http://example.com' },
                 {
                     description: 'blob',
                     specifier: 'blob:nodedata:00000000-0000-0000-0000-000000000000',
                 },
-            ],
+            ]
         )
-        (
-            'unsupported #.description URL',
-            ({ specifier }) =>
-            assert.rejects
+        {
+            await ctx.test
             (
-                () => import0(specifier),
-                { code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME', constructor: Error },
-            ),
-        );
+                `unsupported ${description} URL`,
+                () =>
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    { code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME', constructor: Error },
+                ),
+            );
+        }
 
-        // Node 17 treats an empty string as a valid specifier.
-        it
+        // Node.js 18 treats an empty string as a valid specifier.
+        await ctx.test
         (
             'empty path',
             () =>
             assert.rejects(() => import0(''), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
         );
 
-        it.per
+        for
         (
+            const { description, specifier } of
             [
                 { specifier: '@#$%', description: 'starting with "@"' },
                 { specifier: 'foo\\bar', description: 'containing a "\\" in the package name' },
                 { specifier: 'foo%bar', description: 'containing a "%" in the package name' },
                 { specifier: 'file:%2f', description: 'containing an encoded "/"' },
                 { specifier: 'file:%5C', description: 'containing an encoded "\\"' },
-            ],
+            ]
         )
-        (
-            'invalid module specifier #.description',
-            ({ specifier }) =>
-            assert.rejects
+        {
+            await ctx.test
             (
-                () => import0(specifier),
-                { code: 'ERR_INVALID_MODULE_SPECIFIER', constructor: TypeError },
-            ),
-        );
+                `invalid module specifier ${description}`,
+                () =>
+                assert.rejects
+                (
+                    () => import0(specifier),
+                    { code: 'ERR_INVALID_MODULE_SPECIFIER', constructor: TypeError },
+                ),
+            );
+        }
 
-        it.when(process.platform !== 'win32')
+        await ctx.test
         (
             'inaccessible file (POSIX)',
+            { skip: process.platform === 'win32' },
             () =>
             assert.rejects
             (() => import0('/dev/null/any.js'), { code: 'ENOTDIR', constructor: Error }),
         );
 
-        it.when(process.platform === 'win32')
+        await ctx.test
         (
             'inaccessible file (Windows)',
+            { skip: process.platform !== 'win32' },
             () =>
             assert.rejects
             (
@@ -355,7 +363,7 @@ describe
             ),
         );
 
-        it
+        await ctx.test
         (
             'self-targeting link',
             () =>

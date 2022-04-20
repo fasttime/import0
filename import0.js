@@ -1,10 +1,10 @@
 import { init, parse }                              from 'cjs-module-lexer';
-import { randomUUID }                               from 'crypto';
-import { readFile, stat }                           from 'fs/promises';
-import Module, { builtinModules, createRequire }    from 'module';
-import { basename, dirname, extname, join }         from 'path';
-import { fileURLToPath, pathToFileURL }             from 'url';
-import { format }                                   from 'util';
+import { randomUUID }                               from 'node:crypto';
+import { readFile, stat }                           from 'node:fs/promises';
+import Module, { builtinModules, createRequire }    from 'node:module';
+import { basename, dirname, extname, join }         from 'node:path';
+import { fileURLToPath, pathToFileURL }             from 'node:url';
+import { format }                                   from 'node:util';
 
 import { SourceTextModule, SyntheticModule, compileFunction, createContext }
 from 'vm';

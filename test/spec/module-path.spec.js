@@ -1,7 +1,6 @@
-/* eslint-env ebdd/ebdd */
-
-import assert               from 'assert/strict';
-import { fileURLToPath }    from 'url';
+import assert               from 'node:assert/strict';
+import test                 from 'node:test';
+import { fileURLToPath }    from 'node:url';
 
 const MODULE_IMPORTER_URL       = '../fixtures/module-importer.mjs';
 const MODULE_IMPORTER_FULL_URL  = new URL(MODULE_IMPORTER_URL, import.meta.url).toString();
@@ -13,62 +12,59 @@ function makeExpectedError(code, specifier)
     return expectedError;
 }
 
-describe
+await test
 (
     'Module path resolution',
-    () =>
+    async ctx =>
     {
-        function resolveModuleURL(...args)
+        function adapt(ctx)
         {
-            lastResolveModuleURLArgs = args;
-            const promise = originalResolveModuleURL(...args);
-            return promise;
+            ctx.testWithResolveModuleURL = testWithResolveModuleURL;
         }
 
-        let import0;
-        let setResolveModuleURL;
+        const getLastResolveModuleURLArgs = () => lastResolveModuleURLArgs;
 
-        before
-        (
-            async () =>
+        async function testWithResolveModuleURL(name, options, fn)
+        {
+            function resolveModuleURL(...args)
             {
-                ({ default: import0, setResolveModuleURL } = await import('#import0'));
-            },
-        );
+                lastResolveModuleURLArgs = args;
+                const promise = originalResolveModuleURL(...args);
+                return promise;
+            }
 
-        let lastResolveModuleURLArgs;
-        let originalResolveModuleURL;
-
-        beforeEach
-        (
-            () =>
+            if (arguments.length === 2)
+                [options, fn] = [undefined, options];
+            const originalResolveModuleURL = setResolveModuleURL(resolveModuleURL);
+            try
             {
-                originalResolveModuleURL = setResolveModuleURL(resolveModuleURL);
-            },
-        );
-
-        afterEach
-        (
-            () =>
+                await this.test(name, options, fn);
+            }
+            finally
             {
                 setResolveModuleURL(originalResolveModuleURL);
-                originalResolveModuleURL = undefined;
                 lastResolveModuleURLArgs = undefined;
-            },
-        );
+            }
+        }
 
-        it
+        const { default: import0, setResolveModuleURL } = await import('#import0');
+
+        let lastResolveModuleURLArgs;
+
+        adapt(ctx);
+
+        await ctx.testWithResolveModuleURL
         (
             'file URL',
             async () =>
             {
                 const url = new URL('../fixtures/any.js', import.meta.url);
                 await import0(url);
-                assert.deepEqual(lastResolveModuleURLArgs, [url.toString(), import.meta.url]);
+                assert.deepEqual(getLastResolveModuleURLArgs(), [url.toString(), import.meta.url]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'file URL without "///" after "file:"',
             async () =>
@@ -76,34 +72,35 @@ describe
                 const url = new URL('../fixtures/any.js', import.meta.url);
                 const specifier = url.toString().replace(/^file:\/\/\//, 'file:');
                 await import0(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, import.meta.url]);
+                assert.deepEqual(getLastResolveModuleURLArgs(), [specifier, import.meta.url]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'relative path',
             async () =>
             {
                 const specifier = '../fixtures/any.js';
                 await import0(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, import.meta.url]);
+                assert.deepEqual(getLastResolveModuleURLArgs(), [specifier, import.meta.url]);
             },
         );
 
-        it.when(process.platform !== 'win32')
+        await ctx.testWithResolveModuleURL
         (
             'absolute path',
+            { skip: process.platform === 'win32' },
             async () =>
             {
                 const url = new URL('../fixtures/any.js', import.meta.url);
                 const specifier = fileURLToPath(url);
                 await import0(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, import.meta.url]);
+                assert.deepEqual(getLastResolveModuleURLArgs(), [specifier, import.meta.url]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'package without subpath',
             async () =>
@@ -111,11 +108,12 @@ describe
                 const { default: import_ } = await import0(MODULE_IMPORTER_URL);
                 const specifier = 'any-package';
                 await import_(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'package with valid subpath',
             async () =>
@@ -123,11 +121,12 @@ describe
                 const { default: import_ } = await import0(MODULE_IMPORTER_URL);
                 const specifier = 'any-package/any-module.mjs';
                 await import_(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'package with subpath ""',
             async () =>
@@ -140,11 +139,12 @@ describe
                     () => import_(specifier),
                     makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
                 );
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'package with subpath "."',
             async () =>
@@ -157,11 +157,12 @@ describe
                     () => import_(specifier),
                     makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier),
                 );
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'package with main',
             async () =>
@@ -169,12 +170,14 @@ describe
                 const { default: import_ } = await import0(MODULE_IMPORTER_URL);
                 const specifier = 'package-with-main';
                 await import_(specifier);
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        describe.per
+        for
         (
+            const { type, existingSpecifier, notFoundSpecifier } of
             [
                 {
                     type: 'exports',
@@ -186,86 +189,103 @@ describe
                     existingSpecifier: '#main',
                     notFoundSpecifier: '#not-found',
                 },
-            ],
+            ]
         )
-        (
-            '#.type',
-            ({ existingSpecifier, notFoundSpecifier }) =>
-            {
-                const testData =
-                [
-                    {
-                        importerType: 'CommonJS module',
-                        importerURL: '../fixtures/imports-exports/module-importer.cjs',
-                    },
-                    {
-                        importerType: 'ES module',
-                        importerURL: '../fixtures/imports-exports/module-importer.mjs',
-                    },
-                ];
+        {
+            await ctx.test
+            (
+                type,
+                async ctx =>
+                {
+                    adapt(ctx);
 
-                it.per(testData)
-                (
-                    'existing import mapping (from #.importerType)',
-                    async ({ importerURL }) =>
+                    for
+                    (
+                        const { importerType, importerURL } of
+                        [
+                            {
+                                importerType: 'CommonJS module',
+                                importerURL: '../fixtures/imports-exports/module-importer.cjs',
+                            },
+                            {
+                                importerType: 'ES module',
+                                importerURL: '../fixtures/imports-exports/module-importer.mjs',
+                            },
+                        ]
+                    )
                     {
-                        const { default: import_ } = await import0(importerURL);
-                        const { default: actual } = await import_(existingSpecifier);
-                        assert.equal(actual, 'ES module');
-                        const importerFullURL = new URL(importerURL, import.meta.url);
-                        assert.deepEqual
-                        (lastResolveModuleURLArgs, [existingSpecifier, importerFullURL.toString()]);
-                    },
-                );
-
-                it.per(testData)
-                (
-                    'import mapping not found (from #.importerType)',
-                    async ({ importerURL }) =>
-                    {
-                        const { default: import_ } = await import0(importerURL);
-                        await assert.rejects
+                        await ctx.testWithResolveModuleURL
                         (
-                            () => import_(notFoundSpecifier),
-                            { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                            `existing import mapping (from ${importerType})`,
+                            async () =>
+                            {
+                                const { default: import_ } = await import0(importerURL);
+                                const { default: actual } = await import_(existingSpecifier);
+                                assert.equal(actual, 'ES module');
+                                const importerFullURL = new URL(importerURL, import.meta.url);
+                                assert.deepEqual
+                                (
+                                    getLastResolveModuleURLArgs(),
+                                    [existingSpecifier, importerFullURL.toString()],
+                                );
+                            },
                         );
-                    },
-                );
 
-                it
-                (
-                    'existing require mapping',
-                    async () =>
-                    {
-                        const requirerURL =
-                        new URL('../fixtures/imports-exports/module-requirer.cjs', import.meta.url);
-                        const { default: require } = await import0(requirerURL);
-                        const actual = require(existingSpecifier);
-                        assert.equal(actual, 'CommonJS module');
-                        assert.deepEqual
-                        (lastResolveModuleURLArgs, [requirerURL.toString(), import.meta.url]);
-                    },
-                );
-
-                it
-                (
-                    'require mapping not found',
-                    async () =>
-                    {
-                        const requirerURL =
-                        new URL('../fixtures/imports-exports/module-requirer.cjs', import.meta.url);
-                        const { default: require } = await import0(requirerURL);
-                        assert.throws
+                        await ctx.test
                         (
-                            () => require(notFoundSpecifier),
-                            { code: 'MODULE_NOT_FOUND', constructor: Error },
+                            `import mapping not found (from ${importerType})`,
+                            async () =>
+                            {
+                                const { default: import_ } = await import0(importerURL);
+                                await assert.rejects
+                                (
+                                    () => import_(notFoundSpecifier),
+                                    { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                                );
+                            },
                         );
-                    },
-                );
-            },
-        );
+                    }
 
-        it
+                    await ctx.testWithResolveModuleURL
+                    (
+                        'existing require mapping',
+                        async () =>
+                        {
+                            const requirerURL =
+                            new URL
+                            ('../fixtures/imports-exports/module-requirer.cjs', import.meta.url);
+                            const { default: require } = await import0(requirerURL);
+                            const actual = require(existingSpecifier);
+                            assert.equal(actual, 'CommonJS module');
+                            assert.deepEqual
+                            (
+                                getLastResolveModuleURLArgs(),
+                                [requirerURL.toString(), import.meta.url],
+                            );
+                        },
+                    );
+
+                    await ctx.test
+                    (
+                        'require mapping not found',
+                        async () =>
+                        {
+                            const requirerURL =
+                            new URL
+                            ('../fixtures/imports-exports/module-requirer.cjs', import.meta.url);
+                            const { default: require } = await import0(requirerURL);
+                            assert.throws
+                            (
+                                () => require(notFoundSpecifier),
+                                { code: 'MODULE_NOT_FOUND', constructor: Error },
+                            );
+                        },
+                    );
+                },
+            );
+        }
+
+        await ctx.testWithResolveModuleURL
         (
             'package with missing main',
             async () =>
@@ -275,11 +295,12 @@ describe
                 await
                 assert.rejects
                 (() => import_(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error });
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
 
-        it
+        await ctx.testWithResolveModuleURL
         (
             'missing package',
             async () =>
@@ -289,7 +310,8 @@ describe
                 await
                 assert.rejects
                 (() => import_(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error });
-                assert.deepEqual(lastResolveModuleURLArgs, [specifier, MODULE_IMPORTER_FULL_URL]);
+                assert.deepEqual
+                (getLastResolveModuleURLArgs(), [specifier, MODULE_IMPORTER_FULL_URL]);
             },
         );
     },

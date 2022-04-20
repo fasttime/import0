@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { rm }               from 'fs/promises';
-import { resolve }          from 'path';
-import { fileURLToPath }    from 'url';
+import { rm }               from 'node:fs/promises';
+import { resolve }          from 'node:path';
+import { fileURLToPath }    from 'node:url';
 
 const workspaceFolder = resolve(fileURLToPath(import.meta.url), '../..');
 process.chdir(workspaceFolder);

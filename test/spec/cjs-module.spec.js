@@ -1,25 +1,16 @@
-/* eslint-env ebdd/ebdd */
+import assert               from 'node:assert/strict';
+import Module               from 'node:module';
+import test                 from 'node:test';
+import { fileURLToPath }    from 'node:url';
 
-import assert               from 'assert/strict';
-import Module               from 'module';
-import { fileURLToPath }    from 'url';
-
-describe
+await test
 (
     'CommonJS module',
-    () =>
+    async ctx =>
     {
-        let import0;
+        const { default: import0 } = await import('#import0');
 
-        before
-        (
-            async () =>
-            {
-                ({ default: import0 } = await import('#import0'));
-            },
-        );
-
-        it
+        await ctx.test
         (
             'exports',
             async () =>
@@ -41,7 +32,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'default exports',
             async () =>
@@ -55,7 +46,7 @@ describe
             },
         );
 
-        it
+        await ctx.test
         (
             'runtime variables',
             async () =>
