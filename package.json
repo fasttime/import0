@@ -23,7 +23,7 @@
     "coverage": "c8 --reporter=html --reporter=text-summary npm test",
     "lint": "node ./dev/lint.js",
     "make-fixtures": "node ./test/make-fixtures.js",
-    "test": "node --experimental-import-meta-resolve --experimental-vm-modules ./test/test.js"
+    "test": "node --experimental-import-meta-resolve --experimental-vm-modules --test test/spec"
   },
   "dependencies": {
     "cjs-module-lexer": "1"
@@ -33,7 +33,7 @@
     "c8": "latest"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.1"
   },
   "exports": {
     ".": {
