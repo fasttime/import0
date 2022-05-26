@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL }             from 'node:url';
 import { format }                                   from 'node:util';
 
 import { SourceTextModule, SyntheticModule, compileFunction, createContext }
-from 'vm';
+from 'node:vm';
 
 const CREATE_FUNCTION_PARAMS    = ['exports', 'require', 'module', '__filename', '__dirname'];
 

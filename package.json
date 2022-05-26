@@ -20,7 +20,7 @@
     "build": "npm install && npm run build-no-install",
     "build-no-install": "npm run clean && npm run lint && npm run make-fixtures && npm run coverage",
     "clean": "node ./dev/clean.js",
-    "coverage": "c8 --reporter=html --reporter=text-summary npm test",
+    "coverage": "node ./dev/coverage.js",
     "lint": "node ./dev/lint.js",
     "make-fixtures": "node ./test/make-fixtures.js",
     "test": "node --experimental-import-meta-resolve --experimental-vm-modules --test test/spec"
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@fasttime/lint": "latest",
-    "c8": "latest"
+    "c8js": "latest"
   },
   "engines": {
     "node": ">=18.1"
