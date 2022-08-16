@@ -10,7 +10,8 @@ await lint
 (
     {
         src: ['*.{js,ts}', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
+        jsVersion: 2022,
         envs: 'node',
-        parserOptions: { ecmaVersion: 2022, project: 'tsconfig.json', sourceType: 'module' },
+        parserOptions: { project: 'tsconfig.json', sourceType: 'module' },
     },
 );
