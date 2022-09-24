@@ -228,16 +228,7 @@ await test
             async () =>
             {
                 const specifier = '../fixtures/null-package-json-dir/any.js';
-                await
-                assert.rejects
-                (
-                    () => import0(specifier),
-                    {
-                        constructor: TypeError,
-                        message:
-                        'Cannot destructure property \'imports\' of \'packageJSON\' as it is null.',
-                    },
-                );
+                await assert.rejects(() => import0(specifier), TypeError);
             },
         );
 
