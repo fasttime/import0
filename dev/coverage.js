@@ -7,9 +7,9 @@ await c8js
     process.execPath,
     ['--experimental-import-meta-resolve', '--experimental-vm-modules', '--test', 'test/spec'],
     {
-        cwd: new URL('..', import.meta.url),
-        reporter: ['html', 'text-summary'],
-        useC8Config: false,
+        cwd:            new URL('..', import.meta.url),
+        reporter:       ['html', 'text-summary'],
+        useC8Config:    false,
         watermarks:
         {
             branches:   [90, 100],

@@ -9,9 +9,9 @@ process.chdir(workspaceFolder);
 await lint
 (
     {
-        src: ['*.{js,ts}', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
-        jsVersion: 2022,
-        envs: 'node',
-        parserOptions: { project: 'tsconfig.json', sourceType: 'module' },
+        src:            ['*.{js,ts}', 'dev/*.js', 'test/**/*.js', '!test/fixtures'],
+        jsVersion:      2022,
+        envs:           'node',
+        parserOptions:  { project: 'tsconfig.json', sourceType: 'module' },
     },
 );

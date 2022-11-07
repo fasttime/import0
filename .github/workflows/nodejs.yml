@@ -6,32 +6,35 @@ jobs:
 
   lint:
 
+    name: Lint Files
+
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
       with:
-        node-version: 18 >=18.1
+        node-version: ^18.1
     - run: |
         npm install
         npm run lint
 
   test:
 
-    name: test (on ${{ matrix.runs-on }})
+    name: Test (Node.js ${{ matrix.node-version }} on ${{ matrix.runs-on }})
 
     runs-on: ${{ matrix.runs-on }}
 
     strategy:
       matrix:
+        node-version: ['^18.1', '19']
         runs-on: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
       with:
-        node-version: 18 >=18.1
+        node-version: ${{ matrix.node-version }}
     - run: |
         npm install
         npm run make-fixtures

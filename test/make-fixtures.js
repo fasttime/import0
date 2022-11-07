@@ -101,7 +101,8 @@ const FIXTURES =
     exports.__filename  = __filename;
     exports.__dirname   = __dirname;
     `,
-    'dir-any.js': { },
+    'dir-any.js':
+    { },
     'dir-package-json-dir':
     {
         'module.js':
@@ -269,7 +270,8 @@ const FIXTURES =
         `,
         'package.json': SymLink('package.json'),
     },
-    'self-link.js': SymLink('self-link.js'),
+    'self-link.js':
+    SymLink('self-link.js'),
 };
 
 async function doSymlink(target, path)

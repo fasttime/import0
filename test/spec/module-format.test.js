@@ -237,16 +237,16 @@ await test
             const { description, specifier } of
             [
                 {
-                    description: 'supported extension',
-                    specifier: '../fixtures/missing.js',
+                    description:    'supported extension',
+                    specifier:      '../fixtures/missing.js',
                 },
                 {
-                    description: 'unsupported extension',
-                    specifier: '../fixtures/missing.png',
+                    description:    'unsupported extension',
+                    specifier:      '../fixtures/missing.png',
                 },
                 {
-                    description: 'extension ".js" when the next "package.json" file is invalid',
-                    specifier: '../fixtures/invalid-package-json-dir/missing.js',
+                    description:    'extension ".js" when the next "package.json" file is invalid',
+                    specifier:      '../fixtures/invalid-package-json-dir/missing.js',
                 },
             ]
         )
@@ -283,8 +283,8 @@ await test
             [
                 { description: 'HTTP', specifier: 'http://example.com' },
                 {
-                    description: 'blob',
-                    specifier: 'blob:nodedata:00000000-0000-0000-0000-000000000000',
+                    description:    'blob',
+                    specifier:      'blob:nodedata:00000000-0000-0000-0000-000000000000',
                 },
             ]
         )

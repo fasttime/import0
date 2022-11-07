@@ -76,8 +76,7 @@ function createImportModuleDynamically()
         async function getIsESModuleFlag(packagePath)
         {
             const isESModuleFlagPromise =
-            isESModuleFlagCache[packagePath] ??
-            (isESModuleFlagCache[packagePath] = getIsESModuleFlagSupplier(packagePath));
+            isESModuleFlagCache[packagePath] ??= getIsESModuleFlagSupplier(packagePath);
             const isESModuleFlag = await isESModuleFlagPromise;
             return isESModuleFlag;
         }
@@ -206,18 +205,15 @@ function createImportModuleDynamically()
                 };
             }
             const modulePromise =
-            moduleCache[identifier] ??
-            (
-                moduleCache[identifier] =
-                (async () =>
-                {
-                    const module = await moduleSupplier();
-                    await module.link(importModuleDynamically);
-                    await module.evaluate();
-                    return module;
-                }
-                )()
-            );
+            moduleCache[identifier] ??=
+            (async () =>
+            {
+                const module = await moduleSupplier();
+                await module.link(importModuleDynamically);
+                await module.evaluate();
+                return module;
+            }
+            )();
             return modulePromise;
         }
     }

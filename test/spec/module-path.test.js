@@ -180,14 +180,14 @@ await test
             const { type, existingSpecifier, notFoundSpecifier } of
             [
                 {
-                    type: 'exports',
-                    existingSpecifier: 'imports-exports',
-                    notFoundSpecifier: 'imports-exports/not-found',
+                    type:               'exports',
+                    existingSpecifier:  'imports-exports',
+                    notFoundSpecifier:  'imports-exports/not-found',
                 },
                 {
-                    type: 'imports',
-                    existingSpecifier: '#main',
-                    notFoundSpecifier: '#not-found',
+                    type:               'imports',
+                    existingSpecifier:  '#main',
+                    notFoundSpecifier:  '#not-found',
                 },
             ]
         )
@@ -204,12 +204,12 @@ await test
                         const { importerType, importerURL } of
                         [
                             {
-                                importerType: 'CommonJS module',
-                                importerURL: '../fixtures/imports-exports/module-importer.cjs',
+                                importerType:   'CommonJS module',
+                                importerURL:    '../fixtures/imports-exports/module-importer.cjs',
                             },
                             {
-                                importerType: 'ES module',
-                                importerURL: '../fixtures/imports-exports/module-importer.mjs',
+                                importerType:   'ES module',
+                                importerURL:    '../fixtures/imports-exports/module-importer.mjs',
                             },
                         ]
                     )

@@ -18,11 +18,11 @@ await test
                 const actual = await import0('../fixtures/cjs-exports-module.cjs');
                 const expected =
                 {
-                    __proto__: null,
-                    aux: 'Auxiliary export',
+                    __proto__:  null,
+                    aux:        'Auxiliary export',
                     default:
                     { aux: 'Auxiliary export', default: 'Default export', ext: 'Extended export' },
-                    ext: 'Extended export',
+                    ext:        'Extended export',
                 };
                 Object.defineProperty(expected, Symbol.toStringTag, { value: 'Module' });
                 assert.deepEqual(actual, expected);
