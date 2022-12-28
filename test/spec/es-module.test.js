@@ -11,8 +11,8 @@ for
     const { assertResolveRelativeURL, description, urlProvider } of
     [
         {
-            description: 'file URL',                // eslint-disable-line key-spacing
-            urlProvider: () => FILE_URL.toString(), // eslint-disable-line key-spacing
+            description: 'file URL',
+            urlProvider: () => FILE_URL.toString(),
             assertResolveRelativeURL:
             async resolveRelativeURL =>
             {

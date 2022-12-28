@@ -101,29 +101,30 @@ function createImportModuleDynamically()
             switch (extension)
             {
             case '.js':
-            {
-                const packagePath = dirname(modulePath);
-                const isESModuleFlag = await getPackageScopeIsESModuleFlag(packagePath) ?? false;
-                return isESModuleFlag;
-            }
+                {
+                    const packagePath = dirname(modulePath);
+                    const isESModuleFlag =
+                    await getPackageScopeIsESModuleFlag(packagePath) ?? false;
+                    return isESModuleFlag;
+                }
             case '.mjs':
                 return true;
             case '.cjs':
                 return false;
             default:
-            {
-                const messageFormat =
-                `Unrecognized file extension "${extension}" for "${modulePath}" found while ` +
-                'resolving %s';
-                throwImportError
-                (
-                    'ERR_UNKNOWN_FILE_EXTENSION',
-                    messageFormat,
-                    specifier,
-                    referencingModuleURL,
-                    TypeError,
-                );
-            }
+                {
+                    const messageFormat =
+                    `Unrecognized file extension "${extension}" for "${modulePath}" found while ` +
+                    'resolving %s';
+                    throwImportError
+                    (
+                        'ERR_UNKNOWN_FILE_EXTENSION',
+                        messageFormat,
+                        specifier,
+                        referencingModuleURL,
+                        TypeError,
+                    );
+                }
             }
         }
 
