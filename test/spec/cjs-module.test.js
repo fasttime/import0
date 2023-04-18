@@ -54,8 +54,8 @@ await test
                 const specifier = '../fixtures/cjs-vars-module.cjs';
                 const
                 {
-                    default: defaultExport,
-                    this: thisValue,
+                    default:    defaultExport,
+                    this:       thisValue,
                     exports,
                     require,
                     module,

@@ -29,8 +29,8 @@ await test
             function resolveModuleURL(...args)
             {
                 lastResolveModuleURLArgs = args;
-                const promise = originalResolveModuleURL(...args);
-                return promise;
+                const moduleURL = originalResolveModuleURL(...args);
+                return moduleURL;
             }
 
             if (arguments.length === 2)

@@ -33,7 +33,7 @@
     "c8js": "latest"
   },
   "engines": {
-    "node": ">=18.1"
+    "node": ">=20"
   },
   "exports": {
     ".": {

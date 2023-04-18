@@ -44,10 +44,11 @@ async function checkModulePath(modulePath, specifier, referencingModuleURL)
 
 function createImportMetaResolve(defaultParentURL)
 {
-    const resolve =
-    async (specifier, referencingModuleURL = defaultParentURL) =>
-    // eslint-disable-next-line no-return-await
-    await resolveModuleURL(specifier, referencingModuleURL);
+    function resolve(specifier, referencingModuleURL = defaultParentURL)
+    {
+        return resolveModuleURL(specifier, referencingModuleURL);
+    }
+
     return resolve;
 }
 
@@ -71,7 +72,7 @@ function createImportModuleDynamically()
         }
     }
 
-    async function importModuleDynamically(specifier, { context, identifier: referencingModuleURL })
+    function importModuleDynamically(specifier, { context, identifier: referencingModuleURL })
     {
         async function getIsESModuleFlag(packagePath)
         {
@@ -168,7 +169,7 @@ function createImportModuleDynamically()
             }
             else
             {
-                identifier = await resolveModuleURL(specifier, referencingModuleURL);
+                identifier = resolveModuleURL(specifier, referencingModuleURL);
                 moduleSupplier =
                 async () =>
                 {

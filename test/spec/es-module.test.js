@@ -14,9 +14,9 @@ for
             description: 'file URL',
             urlProvider: () => FILE_URL.toString(),
             assertResolveRelativeURL:
-            async resolveRelativeURL =>
+            resolveRelativeURL =>
             {
-                const actual = await resolveRelativeURL();
+                const actual = resolveRelativeURL();
                 const expected = new URL('.', FILE_URL).toString();
                 assert.equal(actual, expected);
             },
@@ -32,7 +32,7 @@ for
             },
             assertResolveRelativeURL:
             resolveRelativeURL =>
-            assert.rejects(resolveRelativeURL, { code: 'ERR_INVALID_URL', constructor: TypeError }),
+            assert.throws(resolveRelativeURL, { code: 'ERR_INVALID_URL', constructor: TypeError }),
         },
     ]
 )
@@ -84,21 +84,19 @@ for
             await ctx.test
             (
                 'import.meta.resolve',
-                async () =>
+                () =>
                 {
                     const { resolve } = namespace.meta;
                     assert.equal(typeof resolve, 'function');
-                    // eslint-disable-next-line require-await
-                    const AsyncFunction = (async () => undefined).constructor;
-                    assert.equal(Object.getPrototypeOf(resolve), AsyncFunction.prototype);
+                    assert.equal(Object.getPrototypeOf(resolve), Function.prototype);
                     assert.equal(resolve.length, 1);
                     assert.equal(resolve.name, 'resolve');
-                    assert.equal(resolve.prototype, undefined);
+                    assert.deepEqual(resolve.prototype, { });
                     {
-                        const actual = await resolve(url);
+                        const actual = resolve(url);
                         assert.equal(actual, url);
                     }
-                    await assertResolveRelativeURL(() => resolve('.'));
+                    assertResolveRelativeURL(() => resolve('.'));
                 },
             );
 
