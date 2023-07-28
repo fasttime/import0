@@ -296,7 +296,7 @@ await test
                 assert.rejects
                 (
                     () => import0(specifier),
-                    { code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME', constructor: Error },
+                    { code: 'ERR_INVALID_URL_SCHEME', constructor: TypeError },
                 ),
             );
         }
@@ -339,7 +339,10 @@ await test
             { skip: process.platform === 'win32' },
             () =>
             assert.rejects
-            (() => import0('/dev/null/any.js'), { code: 'ENOTDIR', constructor: Error }),
+            (
+                () => import0('/dev/null/any.js'),
+                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+            ),
         );
 
         await ctx.test
@@ -350,7 +353,7 @@ await test
             assert.rejects
             (
                 () => import0('file:///C:/System%20Volume%20Information'),
-                { code: 'EPERM', constructor: Error },
+                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
             ),
         );
 
@@ -359,7 +362,10 @@ await test
             'self-targeting link',
             () =>
             assert.rejects
-            (() => import0('../fixtures/self-link.js'), { code: 'ELOOP', constructor: Error }),
+            (
+                () => import0('../fixtures/self-link.js'),
+                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+            ),
         );
     },
 );
