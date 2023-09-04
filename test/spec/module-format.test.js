@@ -255,8 +255,7 @@ await test
             (
                 `missing path with ${description}`,
                 () =>
-                assert.rejects
-                (() => import0(specifier), { code: 'ERR_MODULE_NOT_FOUND', constructor: Error }),
+                assert.rejects(() => import0(specifier), { code: 'ENOENT', constructor: Error }),
             );
         }
 
@@ -269,8 +268,6 @@ await test
                 {
                     const specifier = `../fixtures/missing-dir${separator}`;
                     const expectedError =
-                    process.platform === 'win32' ?
-                    { code: 'ERR_MODULE_NOT_FOUND', constructor: Error } :
                     makeExpectedError('ERR_UNSUPPORTED_DIR_IMPORT', specifier);
                     await assert.rejects(() => import0(specifier), expectedError);
                 },
@@ -341,7 +338,7 @@ await test
             assert.rejects
             (
                 () => import0('/dev/null/any.js'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                { code: 'ENOTDIR', constructor: Error },
             ),
         );
 
@@ -353,7 +350,7 @@ await test
             assert.rejects
             (
                 () => import0('file:///C:/System%20Volume%20Information'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                { code: 'EPERM', constructor: Error },
             ),
         );
 
@@ -362,10 +359,7 @@ await test
             'self-targeting link',
             () =>
             assert.rejects
-            (
-                () => import0('../fixtures/self-link.js'),
-                { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
-            ),
+            (() => import0('../fixtures/self-link.js'), { code: 'ELOOP', constructor: Error }),
         );
     },
 );

@@ -240,7 +240,7 @@ await test
                                 await assert.rejects
                                 (
                                     () => import_(notFoundSpecifier),
-                                    { code: 'ERR_MODULE_NOT_FOUND', constructor: Error },
+                                    { code: 'ENOENT', constructor: Error },
                                 );
                             },
                         );

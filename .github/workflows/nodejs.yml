@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-node@v3
       with:
-        node-version: ^20.3
+        node-version: ^20.6
     - run: |
         npm install
         npm run lint
@@ -27,11 +27,11 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [^20.3]
+        node-version: [^20.6]
         runs-on: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
