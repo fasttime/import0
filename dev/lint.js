@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { lint }             from '@fasttime/lint';
-import { resolve }          from 'node:path';
+import { join }             from 'node:path';
 import { fileURLToPath }    from 'node:url';
 
-const workspaceFolder = resolve(fileURLToPath(import.meta.url), '../..');
+const workspaceFolder = join(fileURLToPath(import.meta.url), '../..');
 process.chdir(workspaceFolder);
 await lint
 (

@@ -5,7 +5,7 @@ import c8js from 'c8js';
 await c8js
 (
     process.execPath,
-    ['--experimental-import-meta-resolve', '--experimental-vm-modules', '--test', 'test/spec'],
+    ['--experimental-import-meta-resolve', '--experimental-vm-modules', '--test', 'test/spec/*.js'],
     {
         cwd:            new URL('..', import.meta.url),
         reporter:       ['html', 'text-summary'],
